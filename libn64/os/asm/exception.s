@@ -266,7 +266,7 @@ libn64_context_save_fpufr_loop:
 #  This part of the exception handler gets loaded directly at 0x80000180
 #  by the loader. Certain large portions of the context handler (i.e., the
 #  context switching) live with the rest of the libn64 (@ 0x80000400+) due
-#  to the fact that we only have about 0x280 bytes for the entirety of this
+#  to the fact that we only have about 0x300 bytes for the entirety of this
 #  routine without doing a lot more relocation work.
 # -------------------------------------------------------------------
 .section .exception, "ax", @progbits

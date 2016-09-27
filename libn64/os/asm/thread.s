@@ -9,7 +9,7 @@
 #
 
 #include <libn64.h>
-	
+
 .section .text.libn64, "ax", @progbits
 
 .set noat
@@ -25,7 +25,7 @@ libn64_thread_exit:
   addiu $at, $zero, 0x1
   syscall
 
-.size	libn64_thread_exit,.-libn64_thread_exit
+.size libn64_thread_exit,.-libn64_thread_exit
 
 .set at
 .set reorder

@@ -9,7 +9,7 @@
 #
 
 #include <libn64.h>
-	
+
 .section .text.libn64, "ax", @progbits
 
 .set noat
@@ -91,17 +91,17 @@ libn64_syscall_thread_exit:
 .set at
 .set reorder
 
-.section	.rodata
+.section  .rodata
 
 # -------------------------------------------------------------------
 #  System call table.
 # -------------------------------------------------------------------
 .global libn64_syscall_table
-.type	libn64_syscall_table, @object
+.type libn64_syscall_table, @object
 .align 4
 libn64_syscall_table:
-.long	libn64_syscall_thread_create
-.long	libn64_syscall_thread_exit
+.long libn64_syscall_thread_create
+.long libn64_syscall_thread_exit
 
-.size	libn64_syscall_table,.-libn64_syscall_table
+.size libn64_syscall_table,.-libn64_syscall_table
 

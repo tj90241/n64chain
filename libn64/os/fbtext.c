@@ -416,13 +416,13 @@ const uint8_t *get_font_data(char c) {
 
 unsigned libn64_fbchar16(const struct libn64_fbtext_context *context,
     uint32_t fb_address, char c) {
-	const uint8_t *font = get_font_data(c);
-	unsigned i, j;
+  const uint8_t *font = get_font_data(c);
+  unsigned i, j;
 
   fb_address += (context->x << 4);
 
-	for (i = 0; i < 16; i++) {
-		uint8_t bitmask = font[i];
+  for (i = 0; i < 16; i++) {
+    uint8_t bitmask = font[i];
 
     // Flush line contents if valid; otherwise flag it dirty.
     // This prevents an otherwise redundant read from memory.
@@ -431,18 +431,18 @@ unsigned libn64_fbchar16(const struct libn64_fbtext_context *context,
       :: "r"(fb_address)
     );
 
-		for (fb_address += 8 << 1, j = 0; j < 8; j++) {
-			unsigned bit = (bitmask >> j) & 0x1;
-			uint16_t color = context->colors[bit];
+    for (fb_address += 8 << 1, j = 0; j < 8; j++) {
+      unsigned bit = (bitmask >> j) & 0x1;
+      uint16_t color = context->colors[bit];
 
-			__asm__ __volatile__(
-				"sh %0, -2(%1)\n\t"
-				:: "r"(color), "r"(fb_address)
+      __asm__ __volatile__(
+        "sh %0, -2(%1)\n\t"
+        :: "r"(color), "r"(fb_address)
         : "memory"
-			);
+      );
 
-			fb_address -= 2;
-		}
+      fb_address -= 2;
+    }
 
     // Ensure the line gets written to memory.
     __asm__ __volatile__(
@@ -451,20 +451,20 @@ unsigned libn64_fbchar16(const struct libn64_fbtext_context *context,
     );
 
     fb_address += context->fb_width;
-	}
+  }
 
   return 1;
 }
 
 unsigned libn64_fbchar32(const struct libn64_fbtext_context *context,
     uint32_t fb_address, char c) {
-	const uint8_t *font = get_font_data(c);
-	unsigned i, j;
+  const uint8_t *font = get_font_data(c);
+  unsigned i, j;
 
   fb_address += (context->x << 5);
 
-	for (i = 0; i < 16; i++) {
-		uint8_t bitmask = font[i];
+  for (i = 0; i < 16; i++) {
+    uint8_t bitmask = font[i];
 
     // Flush line contents if valid; otherwise flag it dirty.
     // This prevents an otherwise redundant read from memory.
@@ -474,18 +474,18 @@ unsigned libn64_fbchar32(const struct libn64_fbtext_context *context,
       :: "r"(fb_address)
     );
 
-		for (fb_address += 8 << 2, j = 0; j < 8; j ++) {
-			unsigned bit = (bitmask >> j) & 0x1;
-			uint16_t color = context->colors[bit];
+    for (fb_address += 8 << 2, j = 0; j < 8; j ++) {
+      unsigned bit = (bitmask >> j) & 0x1;
+      uint16_t color = context->colors[bit];
 
-			__asm__ __volatile__(
-				"sw %0, -4(%1)\n\t"
-				:: "r"(color), "r"(fb_address)
+      __asm__ __volatile__(
+        "sw %0, -4(%1)\n\t"
+        :: "r"(color), "r"(fb_address)
         : "memory"
-			);
+      );
 
-			fb_address -= 4;
-		}
+      fb_address -= 4;
+    }
 
     // Ensure the line gets written to memory.
     __asm__ __volatile__(
@@ -495,8 +495,8 @@ unsigned libn64_fbchar32(const struct libn64_fbtext_context *context,
     );
 
 
-		fb_address += context->fb_width;
-	}
+    fb_address += context->fb_width;
+  }
 
   return 2;
 }
