@@ -10,15 +10,24 @@
 
 #include <libn64.h>
 #include <os/kthread.h>
+#include <os/mm.h>
 #include <os/thread.h>
 #include <os/thread_table.h>
 #include <os/syscall.h>
 #include <stddef.h>
 
+extern uint8_t __bss_end;
+
 void main(void *);
 
 libn64func
-__attribute__((noreturn)) void libn64_main(void) {
+__attribute__((noreturn)) void libn64_main(uint32_t kernel_sp) {
+  uint32_t physmem_bottom = (uint32_t) (&__bss_end) + 0x480 + 4095;
+  uint32_t physmem_top = kernel_sp - 4096;
+
+  // Put the given physical memory region under control of the MM.
+  // Both the top and the bottom addresses must be 4k aligned.
+  libn64_mm_init(physmem_bottom, physmem_top);
   libn64_thread_init();
 
   // Hand control over to the application.

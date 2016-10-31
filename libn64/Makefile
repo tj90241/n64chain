@@ -36,6 +36,7 @@ CFILES = $(call FIXPATH,\
 	os/fbtext.c \
 	os/kthread.c \
 	os/main.c \
+	os/mm.c \
 	os/panic.c \
 	os/thread.c \
 	rcp/vi.c \

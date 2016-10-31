@@ -36,11 +36,11 @@ libn64_ipl:
 # Reserve the necessary amount of space immediately above the stack
 # for thread contexts and queues (0x200 bytes per thread, rounded up
 # to the nearest 4kB page).
-  li $v0, LIBN64_THREADS_MAX
-  addiu $v0, $v0, 0x7
+  li $v0, LIBN64_THREADS_MAX + 0x7
   srl $v0, $v0, 0x3
   sll $v0, $v0, 0xC
   subu $sp, $sp, $v0
+  addu $a0, $sp, $zero
 
 # Set the global pointer reference value.
   la $gp, _gp
