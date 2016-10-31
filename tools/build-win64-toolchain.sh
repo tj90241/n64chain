@@ -12,11 +12,11 @@ set -e
 #
 
 BINUTILS="ftp://ftp.gnu.org/gnu/binutils/binutils-2.27.tar.bz2"
-GCC="ftp://ftp.gnu.org/gnu/gcc/gcc-6.1.0/gcc-6.1.0.tar.bz2"
+GCC="ftp://ftp.gnu.org/gnu/gcc/gcc-6.2.0/gcc-6.2.0.tar.bz2"
 GMP="ftp://ftp.gnu.org/gnu/gmp/gmp-6.1.1.tar.bz2"
 MAKE="ftp://ftp.gnu.org/gnu/make/make-4.2.tar.bz2"
 MPC="ftp://ftp.gnu.org/gnu/mpc/mpc-1.0.3.tar.gz"
-MPFR="ftp://ftp.gnu.org/gnu/mpfr/mpfr-3.1.4.tar.bz2"
+MPFR="ftp://ftp.gnu.org/gnu/mpfr/mpfr-3.1.5.tar.bz2"
 
 export PATH="${PATH}:${SCRIPT_DIR}/bin"
 

@@ -12,7 +12,7 @@ set -e
 #
 
 BINUTILS="ftp://ftp.gnu.org/gnu/binutils/binutils-2.27.tar.bz2"
-GCC="ftp://ftp.gnu.org/gnu/gcc/gcc-6.1.0/gcc-6.1.0.tar.bz2"
+GCC="ftp://ftp.gnu.org/gnu/gcc/gcc-6.2.0/gcc-6.2.0.tar.bz2"
 MAKE="ftp://ftp.gnu.org/gnu/make/make-4.2.tar.bz2"
 
 export PATH="${PATH}:${SCRIPT_DIR}/bin"
