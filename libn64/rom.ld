@@ -15,8 +15,9 @@ EXTERN(libn64_ipl)
 ENTRY(libn64_ipl)
 
 SECTIONS {
-  .exception 0xFFFFFFFF80000180 : AT (__bss_end) {
-    *(.exception)
+  .exception 0xFFFFFFFF80000000 : AT (__bss_end) {
+    *(.exception.tlbmiss)
+    *(.exception.general)
     *(.exception.routines)
   }
 

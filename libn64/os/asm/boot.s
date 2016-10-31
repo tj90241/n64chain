@@ -52,7 +52,7 @@ libn64_ipl:
 # DMA interrupt handler on top of the vector.
 # First, write the DRAM (destination) register.
   lui $at, 0xA460
-  la $v0, (libn64_exception_handler - 0x80000000)
+  la $v0, (libn64_tlb_miss_exception_handler - 0x80000000)
   sw $v0, ($at)
 
 # Next, convert the exception handler address into a PI
@@ -63,12 +63,12 @@ libn64_ipl:
   sw $v1, 0x4($at)
 
 # Finally, write out the length to start the DMA.
-  addiu $v1, $zero, (0x300 - 0x1)
+  addiu $v1, $zero, (0x480 - 0x1)
   sw $v1, 0xC($at)
 
 # These next few instructions are fortunately in the same
 # cache line, so they won't be clobbered by the DMA. We can
-# DMA upto 0x300 bytes safely (anything else will begin
+# DMA upto 0x480 bytes safely (anything else will begin
 # overwriting libn64_init, which is not yet in the cache).
 #
 # Wait for the PI to finish DMA'ing the interrupt handler.
