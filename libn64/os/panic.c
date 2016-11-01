@@ -117,16 +117,24 @@ void libn64_panic_from_isr(void) {
   fb_cur = libn64_panic_vi_state.origin | 0x80000000;
   fb_end = fb_cur + 2 * 320 * 240;
 
-  for (; fb_cur < fb_end; fb_cur += 16) {
-    __asm__ __volatile__(
-      ".set gp=64\n\t"
+  __asm__ __volatile__(
+    ".set gp=64\n\t"
+    ".set noreorder\n\t"
+    "subu %[fb_end], %[fb_end], %[fb_cur]\n\t"
+    "1:\n\t"
+      "addiu %[fb_end], %[fb_end], -0x10\n\t"
       "cache 0xD, 0x0(%[fb_cur])\n\t"
-      "sd $zero, 0x0(%[fb_cur])\n\t"
-      "sd $zero, 0x8(%[fb_cur])\n\t"
-      ".set gp=default\n\t"
-      :: [fb_cur] "r" (fb_cur)
-    );
-  }
+      "addiu %[fb_cur], %[fb_cur], 0x10\n\t"
+      "sd $zero, -0x10(%[fb_cur])\n\t"
+      "bne %[fb_end], $zero, 1b\n\t"
+      "sd $zero, -0x8(%[fb_cur])\n\t"
+    ".set reorder\n\t"
+    ".set gp=default\n\t"
+
+    : [fb_cur] "=&r" (fb_cur), [fb_end] "=&r" (fb_end)
+    : "0" (fb_cur), "1" (fb_end)
+    : "memory"
+  );
 
   // Dump fault and state of the processor to the framebuffer.
   libn64_fbtext_init(&fbtext, 0x3DA800, LIBN64_FBTEXT_COLOR_WHITE,
@@ -142,12 +150,18 @@ void libn64_panic_from_isr(void) {
   }
 
   // Flush the remaining, unwritten lines in cache.
-  for (fb_cur = 0x80000000; fb_cur < 0x80002000; fb_cur += 16) {
-    __asm__ __volatile__(
-      "cache 0x1, 0x0(%[fb_cur])\n\t"
-      :: [fb_cur] "r" (fb_cur)
-    );
-  }
+  __asm__ __volatile__(
+    ".set noreorder\n\t"
+    "xori %0, %2, 0x2000\n\t"
+    "1:\n\t"
+      "addiu %0, %0, 0x10\n\t"
+      "bne %0, %1, 1b\n\t"
+      "cache 0xD, -0x10(%0)\n\t"
+    ".set reorder\n\t"
+
+    : [fb_cur] "=&r" (fb_cur)
+    : "0" (fb_cur), [fb_end] "r" (0x80002000)
+  );
 
   // Flush the VI state and tie up the system.
   vi_flush_state(&libn64_panic_vi_state);
