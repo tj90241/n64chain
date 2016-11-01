@@ -49,24 +49,22 @@ void clear_bss(void) {
   );
 }
 
+// Entry point (invoked from IPL handler).
 libn64func
 __attribute__((noreturn)) void libn64_main(uint32_t kernel_sp) {
-  uint32_t physmem_bottom, physmem_top;
-
   clear_bss();
 
   // Put the given physical memory region under control of the MM.
   // Both the top and the bottom addresses must be 4k aligned.
-  physmem_bottom = (uint32_t) (&__bss_end) + 0x480 + 4095;
-  physmem_top = kernel_sp - 4096;
+  uint32_t physmem_bottom = (uint32_t) (&__bss_end) + 0x480 + 4095;
+  uint32_t physmem_top = kernel_sp - 4096;
 
   libn64_mm_init(physmem_bottom, physmem_top);
 
-  // Hand control over to the application.
-  // Set default thread stack addresses until we get something better.
-  // Give each thread a 4K stack starting at 1MB (except the current thread).
+  // Initialize remaining subsystems (now that the mm is ready).
   libn64_thread_init();
 
+  // Hand control over to the application (in another thread).
   libn64_thread_table->free_list[LIBN64_THREADS_MAX - 2]->state.regs[0x68/4] = 0x80180000;
   libn64_thread_create(main, NULL, LIBN64_THREAD_MIN_PRIORITY + 1);
 
