@@ -108,6 +108,7 @@ SECTIONS {
   _edata = .; PROVIDE (edata = .);
 
   /* BSS */
+  . = ALIGN(16);
   __bss_start = .;
   _fbss = .;
 

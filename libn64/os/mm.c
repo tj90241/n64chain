@@ -26,10 +26,6 @@ void libn64_mm_init(uint32_t physmem_bottom, uint32_t physmem_top) {
   libn64_mm_pages = (libn64_mm_page_list *) (physmem_top);
   physmem_top -= 0x1000;
 
-  // TODO: Remove once BSS is cleared out properly.
-  for (i = 0; i < 8; i++)
-    libn64_mm.free_page_idxs[i] = 0;
-
   for (; physmem_bottom != physmem_top; physmem_bottom += 0x1000) {
     unsigned bank = (physmem_bottom >> 20) & 0x7;
     unsigned idx = libn64_mm.free_page_idxs[bank]++;
