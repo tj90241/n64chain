@@ -16,53 +16,15 @@
 #include <os/syscall.h>
 #include <stddef.h>
 
-extern uint8_t __bss_start;
-extern uint8_t __bss_end;
 void main(void *);
 
-libn64func
-static void clear_bss(void);
-
-// Effectively a memset(__bss_start, 0, __bss_end - __bss_start).
-// This is necessary as the compiler expects BSS is initially zero.
-void clear_bss(void) {
-  uint32_t bss_start, bss_end;
-
-  bss_start = (uint32_t) (&__bss_start);
-  bss_end = (uint32_t) (&__bss_end);
-
-  __asm__ __volatile__(
-    "1:\n\t"
-      ".set gp=64\n\t"
-      ".set noreorder\n\t"
-      "cache 0xD, 0x0(%0)\n\t"
-      "addiu %0, %0, 0x10\n\t"
-      "sd $zero, -0x10(%0)\n\t"
-      "bne %0, %1, 1b\n\t"
-      "sd $zero, -0x8(%0)\n\t"
-      ".set reorder\n\t"
-      ".set gp=default\n\t"
-
-    : "=r" (bss_end)
-    : "0" (bss_end), "r" (bss_start)
-    : "memory"
-  );
-}
-
 // Entry point (invoked from IPL handler).
-libn64func
-__attribute__((noreturn)) void libn64_main(uint32_t kernel_sp) {
-  clear_bss();
+libn64func __attribute__((noreturn))
+void libn64_main(uint32_t kernel_sp, uint32_t bss_end) {
+  libn64_thread_early_init();
 
   // Put the given physical memory region under control of the MM.
-  // Both the top and the bottom addresses must be 4k aligned.
-  uint32_t physmem_bottom = (uint32_t) (&__bss_end) + 0x480 + 4095;
-  uint32_t physmem_top = kernel_sp - 4096;
-
-  libn64_mm_init(physmem_bottom, physmem_top);
-
-  // Initialize remaining subsystems (now that the mm is ready).
-  libn64_thread_init();
+  libn64_mm_init(bss_end, kernel_sp - 256);
 
   // Hand control over to the application (in another thread).
   libn64_thread_table->free_list[LIBN64_THREADS_MAX - 2]->state.regs[0x68/4] = 0x80180000;

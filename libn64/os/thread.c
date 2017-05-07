@@ -15,7 +15,7 @@
 struct libn64_thread_table *libn64_thread_table;
 
 // Initialize the thread table.
-void libn64_thread_init(void) {
+void libn64_thread_early_init(void) {
   struct libn64_thread *self;
   unsigned i;
 

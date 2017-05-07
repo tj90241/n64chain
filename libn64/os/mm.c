@@ -20,8 +20,8 @@ void libn64_mm_init(uint32_t physmem_bottom, uint32_t physmem_top) {
   unsigned i;
 
   // Fill the page allocator.
-  physmem_bottom &= 0xFFFFF000;
-  physmem_top &= 0xFFFFF000;
+  physmem_bottom = (physmem_bottom + 4095) & 0xFFFFF000;
+  physmem_top = (physmem_top - 4095) & 0xFFFFF000;
 
   libn64_mm_pages = (libn64_mm_page_list *) (physmem_top);
   physmem_top -= 0x1000;

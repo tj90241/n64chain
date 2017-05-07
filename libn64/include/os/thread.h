@@ -35,7 +35,7 @@ struct libn64_thread {
 
 // Initializes the threading subsystem.
 libn64func
-void libn64_thread_init(void);
+void libn64_thread_early_init(void);
 
 #endif
 
