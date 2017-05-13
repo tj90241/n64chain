@@ -32,7 +32,7 @@ static const vi_state_t libn64_panic_vi_state = {
 };
 
 void libn64_panic_from_isr(void) {
-  static const char *exception_strings[32] = {
+  static const char *exception_strings[34] = {
     "Interrupt",
     "TLB Modification",
     "TLB Miss (Load/Fetch)",
@@ -64,7 +64,10 @@ void libn64_panic_from_isr(void) {
     "Reserved",
     "Reserved",
     "Reserved",
-    "Reserved"
+    "Reserved",
+
+    "libn64: Bad Virtual Address",
+    "libn64: Exhausted Memory"
   };
 
   static const char *gp_register_strs[] = {
@@ -141,7 +144,7 @@ void libn64_panic_from_isr(void) {
       LIBN64_FBTEXT_COLOR_BLACK, 0x140, LIBN64_FBTEXT_16BPP);
 
   fbtext.x = 1; fbtext.y = 1;
-  libn64_fbtext_puts(&fbtext, exception_strings[(sr & 0x7C) >> 2]);
+  libn64_fbtext_puts(&fbtext, exception_strings[(sr & 0xFC) >> 2]);
   libn64_fbtext_puts(&fbtext, " Exception!\n\n ");
 
   for (i = 0; i < sizeof(gp_register_strs) / sizeof(*gp_register_strs); i++) {

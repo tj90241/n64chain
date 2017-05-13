@@ -27,7 +27,6 @@ void libn64_main(uint32_t kernel_sp, uint32_t bss_end) {
   libn64_mm_init(bss_end, kernel_sp - 256);
 
   // Hand control over to the application (in another thread).
-  libn64_thread_table->free_list[LIBN64_THREADS_MAX - 2]->state.regs[0x68/4] = 0x80180000;
   libn64_thread_create(main, NULL, LIBN64_THREAD_MIN_PRIORITY + 1);
 
   // This thread becomes the kernel thread.

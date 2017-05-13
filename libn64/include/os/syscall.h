@@ -50,7 +50,7 @@ static inline int libn64_thread_create(void (*entrypoint)(void *),
 }
 
 // Terminates the currently running thread.
-libn64func __attribute__((always_inline))
+libn64func __attribute__((always_inline)) __attribute__((noreturn))
 static inline void libn64_thread_exit(void) {
   __asm__ __volatile__(
     ".set noreorder\n\t"
@@ -63,6 +63,8 @@ static inline void libn64_thread_exit(void) {
     :: "K" (LIBN64_SYSCALL_EXIT_THREAD)
     : "memory"
   );
+
+  __builtin_unreachable();
 }
 
 #endif

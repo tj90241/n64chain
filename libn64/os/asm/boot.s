@@ -53,7 +53,7 @@ libn64_ipl:
 # DMA interrupt handler on top of the vector.
 # First, write the DRAM (destination) register.
   lui $at, 0xA460
-  la $v0, (libn64_tlb_miss_exception_handler - 0x80000000)
+  la $v0, (libn64_tlb_exception_handler - 0x80000000)
   sw $v0, ($at)
 
 # Next, convert the exception handler address into a PI

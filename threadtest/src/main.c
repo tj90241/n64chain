@@ -10,7 +10,6 @@
 
 #include <os/fbtext.h>
 #include <os/syscall.h>
-#include <os/thread_table.h>
 #include <rcp/vi.h>
 #include <stdint.h>
 
@@ -33,39 +32,29 @@ static vi_state_t vi_state = {
   0x00000400, // y_scale
 };
 
-// Higher priority thread.
-volatile unsigned threads_spawned;
+struct libn64_fbtext_context fbtext;
 
-void thread_main(void *arg) {
-  struct libn64_fbtext_context *fbtext = (struct libn64_fbtext_context *) arg;
-  uint32_t mythreadaddr;
+// Higher priority thread.
+unsigned threads_spawned;
+
+void thread_main(void *arg __attribute__((unused))) {
   unsigned my_prio;
 
   my_prio = (++threads_spawned);
 
-  __asm__ __volatile__("addu %0, $k1, $zero\n\t" : "=r" (mythreadaddr));
-
 #if 1
   if (threads_spawned < 15)
-    libn64_thread_create(thread_main, fbtext, my_prio + 1);
+    libn64_thread_create(thread_main, &fbtext, my_prio + 1);
 #endif
 
-  libn64_fbtext_puts(fbtext, "App thread! Thr=");
-  libn64_fbtext_putu32(fbtext, mythreadaddr);
-  libn64_fbtext_puts(fbtext, ",Prio=");
-  libn64_fbtext_putu32(fbtext, my_prio - 1);
-  libn64_fbtext_puts(fbtext, "\n");
-  libn64_thread_exit();
+  libn64_fbtext_puts(&fbtext, "App thread! Prio=");
+  libn64_fbtext_putu32(&fbtext, my_prio - 1);
+  libn64_fbtext_puts(&fbtext, "\n");
 }
 
 // Application entry point.
 void main(void *unused __attribute__((unused))) {
   unsigned i;
-
-  // Set default thread stack addresses until we get something better.
-  // Give each thread a 4K stack starting at 1MB (except the current thread).
-  for (i = 0; i < LIBN64_THREADS_MAX - 2; i++)
-    libn64_thread_table->free_list[i]->state.regs[0x68/4] = 0x80100000 + 0x1000 * i;
 
   // Wipe FB to black.
   volatile uint16_t *fb = (volatile uint16_t *) 0xA0200000;
@@ -76,14 +65,11 @@ void main(void *unused __attribute__((unused))) {
   // Enable the VI.
   vi_flush_state(&vi_state);
 
-  struct libn64_fbtext_context fbtext;
   libn64_fbtext_init(&fbtext, 0x200000, LIBN64_FBTEXT_COLOR_WHITE,
       LIBN64_FBTEXT_COLOR_BLACK, 0x140, LIBN64_FBTEXT_16BPP);
 
-#if 1
   threads_spawned = 1;
   libn64_thread_create(thread_main, &fbtext, 2);
-#endif
 
   libn64_fbtext_puts(&fbtext, "Idle thread!\n");
 }

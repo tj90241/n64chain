@@ -14,6 +14,7 @@
 
 .set noat
 .set noreorder
+.set gp=64
 
 # -------------------------------------------------------------------
 #  libn64::thread_create
@@ -41,16 +42,30 @@ libn64_syscall_thread_create_aftersave:
   addu $k1, $k1, $k0
   lw $k1, ((LIBN64_THREADS_MAX + 1) * 0x8 + 0x8)($k1)
 
+# Clear the L1 page table entries.
+  addiu $at, $k1, 0x40
+
+libn64_syscall_thread_create_clearloop:
+  cache 0xD, -0x10($at)
+  addiu $at, $at, -0x10
+  sd $zero, 0x1B0($at)
+  bne $at, $k1, libn64_syscall_thread_create_clearloop
+  sd $zero, 0x1B8($at)
+
 # Set the thread's priority, stack, $gp, and coprocessor status.
   sw $a2, 0x190($k1)
   #cache 0xD, 0x060($k1)
-  #lui $at, 0x8000
-  #sw $at, 0x068($k1)
+  lui $at, 0x8000
+  sw $at, 0x068($k1)
   la $at, _gp
   sw $at, 0x064($k1)
-  addiu $at, $zero, 0x402
+  addiu $at, $zero, 0x400
   cache 0xD, 0x080($k1)
   sw $at, 0x080($k1)
+  srl $at, $k1, 0x9
+  andi $at, $at, 0xFF
+  sw $at, 0x084($k1)
+  sw $zero, 0x08C($k1)
 
 # Store the thread's argument to $a0 so that it can be accessed upon start.
 # Store the thread's entrypoint to the exception return address register.
@@ -90,6 +105,7 @@ libn64_syscall_thread_exit:
 
 .set at
 .set reorder
+.set gp=default
 
 .section  .rodata
 
