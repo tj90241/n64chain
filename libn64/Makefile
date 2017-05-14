@@ -27,6 +27,7 @@ OPTFLAGS = -Os -march=vr4300 -mabi=eabi -mgp32 -mlong32 \
 
 ASMFILES = $(call FIXPATH,\
 	os/asm/boot.s \
+	os/asm/context.s \
 	os/asm/exception.s \
 	os/asm/syscall.s \
 	os/asm/thread.s \
