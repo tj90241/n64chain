@@ -63,10 +63,6 @@ libn64_ipl:
   xor $v1, $v0, $v1
   sw $v1, 0x4($at)
 
-# Finally, write out the length to start the DMA.
-  addiu $v1, $zero, (0x480 - 0x1)
-  sw $v1, 0xC($at)
-
 # These next few instructions are fortunately in the same
 # cache line, so they won't be clobbered by the DMA. We can
 # DMA upto 0x480 bytes safely (anything else will begin
@@ -78,6 +74,10 @@ libn64_ipl_inval_dcache:
   cache 0x1, 0x0($ra)
   bne $ra, $sp, libn64_ipl_inval_dcache
   addiu $ra, $ra, 0x10
+
+# Finally, write out the length to start the DMA.
+  addiu $v1, $zero, (0x480 - 0x1)
+  sw $v1, 0xC($at)
 
 # Load $ra with 0x80000480: i.e., where the DMA copy stops.
   jal libn64_init
