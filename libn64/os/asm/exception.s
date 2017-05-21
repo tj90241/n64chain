@@ -398,7 +398,7 @@ libn64_exception_handler_dequeue_thread:
 # Take the value of count /before/ decrementing it.
   lw $a0, ($k0)
   lw $k1, 0x8($k0)
-  addiu $a1, $a0, 0x1
+  addiu $a1, $a0, -0x1
   sw $a1, ($k0)
 
 # Promote the last thing in the heap to the front.
