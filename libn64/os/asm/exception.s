@@ -38,7 +38,8 @@ libn64_tlb_exception_handler:
   subu $k0, $k0, $k1
 
 # Get the current/active thread, save $at so we have some breathing room.
-  lw $k1, (libn64_thread_table)
+  lui $k1, 0x8000
+  lw $k1, 0x420($k1)
   bltz $k0, libn64_tlb_exception_handler_badvaddr
   sw $at, 0x4($k1)
 
@@ -55,7 +56,8 @@ libn64_tlb_exception_handler:
   andi $k0, $ra, 0x7E
 
 # Don't have L2 alloc'd: check L2 page table chain for an existing entry.
-  lw $ra, (libn64_mm_l2_stack_entries)
+  lui $ra, 0x8000
+  lw $ra, 0x428($ra)
   bne $ra, $zero, libn64_tlb_exception_handler_init_l2_stack_entry
   sh $k0, 0x1B0($k1)
 
@@ -78,9 +80,8 @@ libn64_tlb_exception_handler_alloc_l2_stack_entries_loop:
 # Take the first entry from the L2 page table chain and wipe it clean.
 libn64_tlb_exception_handler_init_l2_stack_entry:
   lw $ra, 0x0($ra)
-.set at
-  sw $ra, (libn64_mm_l2_stack_entries)
-.set noat
+  lui $at, 0x8000
+  sw $ra, 0x428($at)
   addiu $at, $k0, 0x80
 
 libn64_tlb_exception_handler_clear_l2_stack_entry_loop:
@@ -111,7 +112,8 @@ libn64_tlb_exception_handler_get_page_entry:
 # For the first page, mark it valid/dirty and assign the physical page.
 # For the adjacent page entry, only mark it valid: we'll fill on TLBM.
 libn64_tlb_exception_handler_update_tlb:
-  lw $at, (libn64_thread_table)
+  lui $at, 0x8000
+  lw $at, 0x420($at)
   mfc0 $ra, $8
   lw $k0, 0x8($at)
   srl $ra, $ra, 0xD
@@ -344,8 +346,9 @@ libn64_exception_handler_timer_interrupt:
 .type libn64_exception_handler_allocpage, @function
 .align 5
 libn64_exception_handler_allocpage:
-  la $at, libn64_mm
-  lhu $k0, 0x0($at)
+  lui $at, 0x8000
+  lhu $k0, 0x410($at)
+  addiu $at, $at, 0x410
 
 libn64_exception_handler_allocpage_scanbanks:
   bnel $k0, $zero, libn64_exception_handler_allocpage_found
@@ -355,7 +358,7 @@ libn64_exception_handler_allocpage_scanbanks:
   bnel $k0, $zero, libn64_exception_handler_allocpage_scanbanks
   lhu $k0, 0x0($at)
 
-# Ran out of pages in the first 8MB to allocate for the stack: panic.
+# Ran out of pages in the first 8MB to allocate: panic.
 libn64_miss_exception_handler_allocfail:
   la $k0, libn64_miss_exception_handler_allocfail_return
   j libn64_context_save
@@ -367,7 +370,8 @@ libn64_exception_handler_allocpage_found:
   andi $at, $at, 0xF
   sll $at, $at, 0x8
   addu $k0, $k0, $at
-  lw $at, (libn64_mm_pages)
+  lui $at, 0x8000
+  lw $at, 0x424($at)
   addu $at, $at, $k0
   addiu $ra, $ra, -0x4
   jr $ra

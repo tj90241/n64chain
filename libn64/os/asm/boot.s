@@ -118,9 +118,10 @@ libn64_init_bss_clear:
 
 # Write out the address of the thread table (it's above the stack).
 # Done from the ASM side of things; off to C to continue init'ing.
-  la $at, libn64_thread_table
+  lui $at,0x8000
+  cache 0xD, 0x420($at)
   j libn64_main
-  sw $sp, ($at)
+  sw $sp, 0x420($at)
 
 .size libn64_ipl,.-libn64_ipl
 

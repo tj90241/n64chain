@@ -28,7 +28,8 @@
 libn64_syscall_thread_create:
   la $k0, libn64_syscall_thread_create_aftersave
   mtc0 $k1, $14
-  lw $k1, (libn64_thread_table)
+  lui $k1, 0x8000
+  lw $k1, 0x420($k1)
   j libn64_context_save
   lw $k1, 0x8($k1)
 
@@ -94,7 +95,8 @@ libn64_syscall_thread_create_clearloop:
 .align 5
 
 libn64_syscall_thread_exit:
-  lw $k0, (libn64_thread_table)
+  lui $k0, 0x8000
+  lw $k0, 0x420($k0)
   sw $ra, 0x4($k0)
   jal libn64_exception_handler_dequeue_thread
   mtc0 $k1, $14
@@ -102,6 +104,24 @@ libn64_syscall_thread_exit:
   lw $k1, 0x8($k0)
 
 .size libn64_syscall_thread_exit,.-libn64_syscall_thread_exit
+
+# -------------------------------------------------------------------
+#  libn64::page_alloc
+# -------------------------------------------------------------------
+.global libn64_syscall_page_alloc
+.type libn64_syscall_page_alloc, @function
+.align 5
+libn64_syscall_page_alloc:
+  mtc0 $k1, $14
+  addu $k1, $ra, $zero
+  jal libn64_exception_handler_allocpage
+  sll $at, $k0, 0xC
+  addu $ra, $k1, $zero
+  lui $k0, 0x8000
+  or $at, $k0, $at
+  eret
+
+.size libn64_syscall_page_alloc,.-libn64_syscall_page_alloc
 
 .set at
 .set reorder
@@ -118,6 +138,7 @@ libn64_syscall_thread_exit:
 libn64_syscall_table:
 .long libn64_syscall_thread_create
 .long libn64_syscall_thread_exit
+.long libn64_syscall_page_alloc
 
 .size libn64_syscall_table,.-libn64_syscall_table
 

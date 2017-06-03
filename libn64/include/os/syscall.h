@@ -14,7 +14,8 @@
 // Syscall numbers.
 #define LIBN64_SYSCALL_CREATE_THREAD 0
 #define LIBN64_SYSCALL_EXIT_THREAD   1
-#define LIBN64_SYSCALL_INVALID       2
+#define LIBN64_SYSCALL_PAGE_ALLOC    2
+#define LIBN64_SYSCALL_INVALID       3
 
 #ifndef __ASSEMBLER__
 
@@ -65,6 +66,29 @@ static inline void libn64_thread_exit(void) {
   );
 
   __builtin_unreachable();
+}
+
+// Allocates a page (4kB) of memory. If there are no available/free pages in
+// the page allocator, then a fatal exception is raised as a result.
+libn64func __attribute__((always_inline))
+static inline void *libn64_page_alloc(void) {
+  void *p;
+
+  __asm__ __volatile__(
+    ".set noreorder\n\t"
+    ".set noat\n\t"
+    "li $at, %1\n\t"
+    "syscall\n\t"
+    "addu %0, $at, $zero\n\t"
+    ".set reorder\n\t"
+    ".set at\n\t"
+
+    : "=r"(p)
+    : "K" (LIBN64_SYSCALL_PAGE_ALLOC)
+    : "memory"
+  );
+
+  return p;
 }
 
 #endif

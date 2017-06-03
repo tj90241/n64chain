@@ -22,13 +22,6 @@ struct libn64_mm {
   uint16_t free_page_idxs[8];
 } __attribute__((aligned(16)));
 
-extern libn64_mm_page_list *libn64_mm_pages;
-extern volatile void *libn64_mm_l2_stack_entries;
-extern struct libn64_mm libn64_mm;
-
-// Allocates a 4kB page from the first available bank.
-void *libn64_mm_alloc(void);
-
 // Initializes the memory management (mm) subsystem.
 libn64func
 void libn64_mm_init(uint32_t physmem_bottom, uint32_t physmem_top);

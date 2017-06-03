@@ -199,7 +199,8 @@ libn64_context_save_loop:
   sw $v1, 0x08C($k1)
 
 libn64_context_save_done:
-  lw $at, (libn64_thread_table)
+  lui $at, 0x8000
+  lw $at, 0x420($at)
   jr $k0
   addu $k0, $at, $zero
 

@@ -24,7 +24,5 @@ struct libn64_thread_table {
   struct libn64_thread threads[LIBN64_THREADS_MAX];
 };
 
-extern struct libn64_thread_table *libn64_thread_table;
-
 #endif
 

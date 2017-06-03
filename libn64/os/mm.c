@@ -12,54 +12,73 @@
 #include <os/mm.h>
 #include <stdint.h>
 
-libn64_mm_page_list *libn64_mm_pages;
-volatile void *libn64_mm_l2_stack_entries;
-struct libn64_mm libn64_mm;
+// Returns a pointer to the libn64_mm structure.
+libn64func __attribute__((always_inline))
+static inline struct libn64_mm *libn64_get_mm(void) {
+  struct libn64_mm *mm;
 
-// Allocates a 4kB page from the first available bank.
-void *libn64_mm_alloc(void) {
-  unsigned i;
+  __asm__(
+    "lui %0, 0x8000\n\t"
+    "addiu %0, %0, 0x410\n\t"
+    : "=r"(mm)
+  );
 
-  for (i = 0; i < 8; i++) {
-    if (libn64_mm.free_page_idxs[i]) {
-      uint16_t page_index = --(libn64_mm.free_page_idxs[i]);
-      uint16_t page_addr = (*libn64_mm_pages)[i][page_index];
-      void *page;
+  return mm;
+}
 
-      __asm__ __volatile__(
-        "sll %1, %1, 0xC\n\t"
-        "lui %0, 0x8000\n\t"
-        "or %0, %0, %1\n\t"
-        : "=&r"(page), "=&r"(page_addr)
-        : "1"(page_addr)
-      );
+// Returns a pointer to the libn64_mm_page_list structure.
+libn64func __attribute__((always_inline))
+static inline libn64_mm_page_list *libn64_get_mm_page_list(void) {
+  libn64_mm_page_list *mm_page_list;
 
-      return page;
-    }
-  }
+  __asm__(
+    "lui %0, 0x8000\n\t"
+    "lw %0, 0x424(%0)\n\t"
+    : "=r"(mm_page_list)
+  );
 
-  // Out of memory; force a crash for now...
-  __asm__ __volatile__("sw $zero, 0x0($zero)\n\t");
-  __builtin_unreachable();
+  return mm_page_list;
 }
 
 // Initialize the memory manager table.
 void libn64_mm_init(uint32_t physmem_bottom, uint32_t physmem_top) {
+  struct libn64_mm *mm = libn64_get_mm();
+  libn64_mm_page_list *mm_page_list;
   unsigned i;
 
   // Fill the page allocator.
   physmem_bottom = (physmem_bottom + 4095) & 0xFFFFF000;
   physmem_top = (physmem_top - 4095) & 0xFFFFF000;
 
-  libn64_mm_pages = (libn64_mm_page_list *) (physmem_top);
+  mm_page_list = (libn64_mm_page_list *) (physmem_top);
   physmem_top -= 0x1000;
 
-  for (; physmem_bottom != physmem_top; physmem_bottom += 0x1000) {
-    unsigned bank = (physmem_bottom >> 20) & 0x7;
-    unsigned idx = libn64_mm.free_page_idxs[bank]++;
+  __asm__(
+    ".set gp=64\n\t"
+    "sd $zero, 0x0(%0)\n\t"
+    "sd $zero, 0x8(%0)\n\t"
+    ".set gp=default\n\t"
+    :: "r"(mm) : "memory"
+  );
 
-    (*libn64_mm_pages)[bank][idx] = physmem_bottom >> 12;
-  }
+  do {
+    unsigned bank = (physmem_bottom >> 20) & 0x7;
+    unsigned idx = mm->free_page_idxs[bank]++;
+
+    (*mm_page_list)[bank][idx] = physmem_bottom >> 12;
+    physmem_bottom += 0x1000;
+  } while (physmem_bottom != physmem_top);
+
+  // Set the page allocator pointer.
+  // Clear L2 stack entry list pointer.
+  __asm__(
+    ".set noat\n\t"
+    "lui $at, 0x8000\n\t"
+    "sw %0, 0x424($at)\n\t"
+    "sw $zero, 0x428($at)\n\t"
+    ".set at\n\t"
+    :: "r"(mm_page_list)
+  );
 
   // Invalidate all the TLB entries.
   __asm__ __volatile__("mtc0 $zero, $5\n\t"  // PageMask
