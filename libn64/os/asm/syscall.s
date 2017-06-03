@@ -97,6 +97,7 @@ libn64_syscall_thread_create_clearloop:
 libn64_syscall_thread_exit:
   lui $k0, 0x8000
   lw $k0, 0x420($k0)
+  mtc0 $k1, $14
   sw $ra, 0x4($k0)
   jal libn64_exception_handler_dequeue_thread
   mtc0 $k1, $14
@@ -123,6 +124,38 @@ libn64_syscall_page_alloc:
 
 .size libn64_syscall_page_alloc,.-libn64_syscall_page_alloc
 
+# -------------------------------------------------------------------
+#  libn64::page_free
+#    $a0 = page address
+# -------------------------------------------------------------------
+.global libn64_syscall_page_free
+.type libn64_syscall_page_free, @function
+.align 5
+libn64_syscall_page_free:
+  lui $at, 0x8000
+  mtc0 $k1, $14
+
+  # Increment the page count for the bank.
+  srl $k1, $a0, 0x13
+  andi $k1, $k1, 0xE
+  addu $k1, $at, $k1
+  lhu $k0, 0x410($k1)
+  addiu $k0, $k0, 0x1
+  sh $k0, 0x410($k1)
+
+  # Return the page to the bank's list.
+  sll $k0, $k0, 0x1
+  sll $k1, $k1, 0x8
+  addu $k1, $k1, $k0
+
+  lw $k0, 0x428($at)
+  srl $at, $a0, 0xC
+  addu $k0, $k0, $k1
+  sh $at, -0x2($k0)
+  eret
+
+.size libn64_syscall_page_free,.-libn64_syscall_page_free
+
 .set at
 .set reorder
 .set gp=default
@@ -139,6 +172,7 @@ libn64_syscall_table:
 .long libn64_syscall_thread_create
 .long libn64_syscall_thread_exit
 .long libn64_syscall_page_alloc
+.long libn64_syscall_page_free
 
 .size libn64_syscall_table,.-libn64_syscall_table
 

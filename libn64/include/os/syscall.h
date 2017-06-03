@@ -15,7 +15,8 @@
 #define LIBN64_SYSCALL_CREATE_THREAD 0
 #define LIBN64_SYSCALL_EXIT_THREAD   1
 #define LIBN64_SYSCALL_PAGE_ALLOC    2
-#define LIBN64_SYSCALL_INVALID       3
+#define LIBN64_SYSCALL_PAGE_FREE     3
+#define LIBN64_SYSCALL_INVALID       4
 
 #ifndef __ASSEMBLER__
 
@@ -89,6 +90,24 @@ static inline void *libn64_page_alloc(void) {
   );
 
   return p;
+}
+
+// Frees a page of memory allocated with libn64_page_alloc().
+libn64func __attribute__((always_inline))
+static inline void libn64_page_free(void *p) {
+  register void *a0 __asm__("$a0") = p;
+
+  __asm__ __volatile__(
+    ".set noreorder\n\t"
+    ".set noat\n\t"
+    "li $at, %1\n\t"
+    "syscall\n\t"
+    ".set reorder\n\t"
+    ".set at\n\t"
+
+    :: "r" (a0), "K" (LIBN64_SYSCALL_PAGE_FREE)
+    : "memory"
+  );
 }
 
 #endif
