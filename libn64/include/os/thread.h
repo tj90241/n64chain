@@ -30,14 +30,14 @@ struct libn64_thread {
   struct libn64_thread_state state;
 
   unsigned priority;
-  uint32_t unused[7];
+  uint32_t unused[11];
 
   uint16_t stack_pte[32];
 };
 
 // Initializes the threading subsystem.
 libn64func
-void libn64_thread_early_init(void);
+void libn64_thread_early_init(uint32_t ram_top);
 
 #endif
 

@@ -50,16 +50,16 @@ libn64_tlb_exception_handler:
   srl $at, $k0, 0x12
   andi $at, $at, 0x3E
   addu $k1, $k1, $at
-  lhu $at, 0x1B0($k1)
+  lhu $at, 0x1C0($k1)
   srl $ra, $k0, 0xB
   bne $at, $zero, libn64_tlb_exception_handler_get_page_entry
   andi $k0, $ra, 0x7E
 
 # Don't have L2 alloc'd: check L2 page table chain for an existing entry.
   lui $ra, 0x8000
-  lw $ra, 0x428($ra)
+  lw $ra, 0x42C($ra)
   bne $ra, $zero, libn64_tlb_exception_handler_init_l2_stack_entry
-  sh $k0, 0x1B0($k1)
+  sh $k0, 0x1C0($k1)
 
 # Need to allocate more L2 entries: add them to the L2 page table chain.
   jal libn64_exception_handler_allocpage
@@ -81,7 +81,7 @@ libn64_tlb_exception_handler_alloc_l2_stack_entries_loop:
 libn64_tlb_exception_handler_init_l2_stack_entry:
   lw $ra, 0x0($ra)
   lui $at, 0x8000
-  sw $ra, 0x428($at)
+  sw $ra, 0x42C($at)
   addiu $at, $k0, 0x80
 
 libn64_tlb_exception_handler_clear_l2_stack_entry_loop:
@@ -92,8 +92,8 @@ libn64_tlb_exception_handler_clear_l2_stack_entry_loop:
   sd $zero, 0x8($at)
 
   srl $at, $k0, 0x7
-  lhu $k0, 0x1B0($k1)
-  sh $at, 0x1B0($k1)
+  lhu $k0, 0x1C0($k1)
+  sh $at, 0x1C0($k1)
 
 # Get physical page frame allocated to the thread/address.
 libn64_tlb_exception_handler_get_page_entry:
@@ -371,7 +371,7 @@ libn64_exception_handler_allocpage_found:
   sll $at, $at, 0x8
   addu $k0, $k0, $at
   lui $at, 0x8000
-  lw $at, 0x424($at)
+  lw $at, 0x428($at)
   addu $at, $at, $k0
   addiu $ra, $ra, -0x4
   jr $ra

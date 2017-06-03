@@ -43,7 +43,7 @@ void thread_main(void *arg __attribute__((unused))) {
   my_prio = (++threads_spawned);
 
 #if 1
-  if (threads_spawned < 15)
+  if (threads_spawned < 14)
     libn64_thread_create(thread_main, &fbtext, my_prio + 1);
 #endif
 

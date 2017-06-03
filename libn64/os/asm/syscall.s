@@ -49,9 +49,9 @@ libn64_syscall_thread_create_aftersave:
 libn64_syscall_thread_create_clearloop:
   cache 0xD, -0x10($at)
   addiu $at, $at, -0x10
-  sd $zero, 0x1B0($at)
+  sd $zero, 0x1C0($at)
   bne $at, $k1, libn64_syscall_thread_create_clearloop
-  sd $zero, 0x1B8($at)
+  sd $zero, 0x1C8($at)
 
 # Set the thread's priority, stack, $gp, and coprocessor status.
   sw $a2, 0x190($k1)

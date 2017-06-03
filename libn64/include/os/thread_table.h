@@ -21,7 +21,6 @@ struct libn64_thread_table {
   unsigned free_threads;
 
   struct libn64_thread *free_list[LIBN64_THREADS_MAX];
-  struct libn64_thread threads[LIBN64_THREADS_MAX];
 };
 
 #endif

@@ -29,19 +29,17 @@ libn64_ipl:
   lui $at, 0xBFC0
   sw $v0, 0x7FC($at)
 
-# Setup a stack at the top of cached RAM.
-  lui $sp, 0x8000
-  lw $at, 0x318($sp)
-  addu $sp, $sp, $at
+# Get the amount of RAM installed.
+  lui $a2, 0x8000
+  lw $at, 0x318($a2)
+  addu $a2, $a2, $at
 
-# Reserve the necessary amount of space immediately above the stack
-# for thread contexts and queues (0x200 bytes per thread, rounded up
-# to the nearest 4kB page).
-  li $v0, LIBN64_THREADS_MAX + 0x7
-  srl $v0, $v0, 0x3
-  sll $v0, $v0, 0xC
-  subu $sp, $sp, $v0
-  addu $a0, $sp, $zero
+# Reserve 0x210 bytes for each thread, setup a stack below that.
+  li $v0, LIBN64_THREADS_MAX
+  sll $v0, $v0, 0x5
+  addiu $v0, $v0, LIBN64_THREADS_MAX
+  sll $v0, $v0, 0x4
+  subu $sp, $a2, $v0
 
 # Set the global pointer reference value.
   la $gp, _gp
@@ -119,9 +117,9 @@ libn64_init_bss_clear:
 # Write out the address of the thread table (it's above the stack).
 # Done from the ASM side of things; off to C to continue init'ing.
   lui $at,0x8000
-  cache 0xD, 0x420($at)
-  j libn64_main
   sw $sp, 0x420($at)
+  j libn64_main
+  addu $a0, $sp, $zero
 
 .size libn64_ipl,.-libn64_ipl
 

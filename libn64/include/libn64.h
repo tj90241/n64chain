@@ -15,7 +15,7 @@
 #define libn64func __attribute__ ((section (".text.libn64")))
 #endif
 
-#define LIBN64_THREADS_MAX 31
+#define LIBN64_THREADS_MAX 15
 
 #endif
 

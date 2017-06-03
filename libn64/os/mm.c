@@ -33,7 +33,7 @@ static inline libn64_mm_page_list *libn64_get_mm_page_list(void) {
 
   __asm__(
     "lui %0, 0x8000\n\t"
-    "lw %0, 0x424(%0)\n\t"
+    "lw %0, 0x428(%0)\n\t"
     : "=r"(mm_page_list)
   );
 
@@ -74,8 +74,8 @@ void libn64_mm_init(uint32_t physmem_bottom, uint32_t physmem_top) {
   __asm__(
     ".set noat\n\t"
     "lui $at, 0x8000\n\t"
-    "sw %0, 0x424($at)\n\t"
-    "sw $zero, 0x428($at)\n\t"
+    "sw %0, 0x428($at)\n\t"
+    "sw $zero, 0x42C($at)\n\t"
     ".set at\n\t"
     :: "r"(mm_page_list)
   );

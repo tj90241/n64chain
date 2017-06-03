@@ -12,34 +12,33 @@
 #include <os/thread.h>
 #include <os/thread_table.h>
 
-// Returns a pointer to the libn64_thread_table structure.
-libn64func __attribute__((always_inline))
-static inline struct libn64_thread_table *libn64_get_thread_table(void) {
-  struct libn64_thread_table *thread_table;
-
-  __asm__(
-    "lui %0, 0x8000\n\t"
-    "lw %0, 0x420(%0)\n\t"
-    : "=r"(thread_table)
-  );
-
-  return thread_table;
-}
-
 // Initialize the thread table.
-void libn64_thread_early_init(void) {
-  struct libn64_thread_table *thread_table = libn64_get_thread_table();
+void libn64_thread_early_init(uint32_t kernel_sp) {
   struct libn64_thread *self;
   unsigned i;
 
+  // Determine the address of the thread table and thread block.
+  struct libn64_thread_table *thread_table =
+    (struct libn64_thread_table *) kernel_sp;
+
+  struct libn64_thread *thread_block =
+    (struct libn64_thread *) (kernel_sp + LIBN64_THREADS_MAX * 0x10);
+
+  __asm__(
+    ".set noat\n\t"
+    "lui $at, 0x8000\n\t"
+    "sw %0, 0x424($at)\n\t"
+    :: "r"(thread_block)
+  );
+
   // Initialize the thread stack.
   for (i = 0; i < LIBN64_THREADS_MAX; i++)
-    thread_table->free_list[i] = thread_table->threads + i;
+    thread_table->free_list[i] = thread_block + i;
 
   thread_table->free_threads = LIBN64_THREADS_MAX - 1;
 
   // Initialize the ready thread queue and initial thread.
-  self = thread_table->threads + thread_table->free_threads;
+  self = thread_block + thread_table->free_threads;
   thread_table->ready_queue.count = 1;
 
   thread_table->ready_queue.heap[0].priority = LIBN64_THREAD_MIN_PRIORITY;
