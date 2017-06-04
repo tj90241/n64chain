@@ -31,7 +31,7 @@
 .align 5
 libn64_context_restore:
   lw $v0, 0x074($k1)
-  lw $a0, 0x00C($k1)
+  lw $a0, 0x01C($k1)
   lw $a1, 0x010($k1)
   mtlo $v0
   lw $v0, 0x078($k1)
@@ -39,7 +39,7 @@ libn64_context_restore:
   lw $a3, 0x018($k1)
   mthi $v0
   lw $v0, 0x07C($k1)
-  lw $t0, 0x01C($k1)
+  lw $t0, 0x00C($k1)
   lw $t1, 0x020($k1)
   mtc0 $v0, $14
   lw $v0, 0x084($k1)
@@ -155,11 +155,11 @@ libn64_context_save_loop:
 
   sw $v0, 0x004($k1)
   sw $v1, 0x008($k1)
-  sw $a0, 0x00C($k1)
+  sw $a0, 0x01C($k1)
   sw $a1, 0x010($k1)
   sw $a2, 0x014($k1)
   sw $a3, 0x018($k1)
-  sw $t0, 0x01C($k1)
+  sw $t0, 0x00C($k1)
   sw $t1, 0x020($k1)
   mflo $v0
   sw $t2, 0x024($k1)

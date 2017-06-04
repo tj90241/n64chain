@@ -17,7 +17,6 @@
 
 struct libn64_thread_table {
   struct libn64_thread_queue ready_queue;
-  struct libn64_thread *blocked_list;
   unsigned free_threads;
 
   struct libn64_thread *free_list[LIBN64_THREADS_MAX];

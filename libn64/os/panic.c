@@ -147,6 +147,11 @@ void libn64_panic_from_isr(void) {
   libn64_fbtext_puts(&fbtext, exception_strings[(sr & 0xFC) >> 2]);
   libn64_fbtext_puts(&fbtext, " Exception!\n\n ");
 
+  // Swap a0 and t0...
+  i = context[3];
+  context[3] = context[7];
+  context[7] = i;
+
   for (i = 0; i < sizeof(gp_register_strs) / sizeof(*gp_register_strs); i++) {
     libn64_fbtext_puts(&fbtext, gp_register_strs[i]);
     libn64_fbtext_putu32(&fbtext, context[i]);

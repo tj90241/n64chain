@@ -22,68 +22,103 @@
 #    $a1 = argument
 #    $a2 = priority
 # -------------------------------------------------------------------
+.set THREAD_FREE_COUNT, ((LIBN64_THREADS_MAX + 1) * 0x8)
+.set THREAD_FREE_LIST, (THREAD_FREE_COUNT + 0x4)
+
 .global libn64_syscall_thread_create
 .type libn64_syscall_thread_create, @function
 .align 5
 libn64_syscall_thread_create:
-  la $k0, libn64_syscall_thread_create_aftersave
+  lui $k0, 0x8000
+  lw $k0, 0x420($k0)
   mtc0 $k1, $14
-  lui $k1, 0x8000
-  lw $k1, 0x420($k1)
-  j libn64_context_save
-  lw $k1, 0x8($k1)
 
-# Grab the next available thread, set it's priority.
-libn64_syscall_thread_create_aftersave:
-  lw $k1, ((LIBN64_THREADS_MAX + 1) * 0x8 + 0x4)($k0)
+# Grab the next available thread from the free list.
+  lw $k1, THREAD_FREE_COUNT($k0)
   addiu $k1, $k1, -0x1
-  sw $k1, ((LIBN64_THREADS_MAX + 1) * 0x8 + 0x4)($k0)
+  sw $k1, THREAD_FREE_COUNT($k0)
 
   sll $k1, $k1, 0x2
   addu $k1, $k1, $k0
-  lw $k1, ((LIBN64_THREADS_MAX + 1) * 0x8 + 0x8)($k1)
+  lw $k1, THREAD_FREE_LIST($k1)
 
-# Clear the L1 page table entries.
+# Invalidate all of the new thread's L1 page table entries.
   addiu $at, $k1, 0x40
 
-libn64_syscall_thread_create_clearloop:
+libn64_syscall_thread_create_invalidate_loop:
   cache 0xD, -0x10($at)
   addiu $at, $at, -0x10
   sd $zero, 0x1C0($at)
-  bne $at, $k1, libn64_syscall_thread_create_clearloop
+  bne $at, $k1, libn64_syscall_thread_create_invalidate_loop
   sd $zero, 0x1C8($at)
 
-# Set the thread's priority, stack, $gp, and coprocessor status.
+# Compare the running thread's priority against the new thread.
+# If the running thread has a higher priority, keep it going.
+# Flush out $a0/$a1 to the thread's $a1/$a0 registers as well.
+  lw $at, 0x8($k0)
+  cache 0xD, 0x010($k1)
+  lw $at, 0x190($at)
   sw $a2, 0x190($k1)
-  #cache 0xD, 0x060($k1)
-  lui $at, 0x8000
-  sw $at, 0x068($k1)
-  la $at, _gp
-  sw $at, 0x064($k1)
-  addiu $at, $zero, 0x400
-  cache 0xD, 0x080($k1)
-  sw $at, 0x080($k1)
-  srl $at, $k1, 0x9
-  andi $at, $at, 0xFF
-  sw $at, 0x084($k1)
-  sw $zero, 0x08C($k1)
+  subu $at, $at, $a2
+  sw $a0, 0x010($k1)
+  bltz $at, libn64_syscall_thread_create_start_new_thread
+  sw $a1, 0x01C($k1)
 
-# Store the thread's argument to $a0 so that it can be accessed upon start.
-# Store the thread's entrypoint to the exception return address register.
-# Set the return address from thread entrypoint to libn64_thread_exit.
-  cache 0xD, 0x000($k1)
-  sw $a1, 0x00C($k1)
-  cache 0xD, 0x070($k1)
-  sw $a0, 0x07C($k1)
-  la $at, libn64_thread_exit
+# The running/active thread has a higher priority than the new thread.
+# Queue the new thread so that it runs sometime in the future.
+libn64_syscall_thread_queue_new_thread:
+  sw $a2, 0x014($k1)
+  sw $a3, 0x018($k1)
 
-# Insert the thread into the ready queue and load up the next thread.
+  la $at, libn64_syscall_thread_create_start_new
   sw $ra, 0x4($k0)
   jal libn64_exception_handler_queue_thread
-  sw $at, 0x070($k1)
+  sw $at, 0x07C($k1)
 
-  j libn64_context_restore
+# Restore destroyed variables and return.
+  lw $k1, 0x4($k0)
+  lw $a0, 0x010($k1)
+  lw $a1, 0x01C($k1)
+  lw $a2, 0x014($k1)
+  lw $a3, 0x018($k1)
+  eret
+
+# The running/active thread has a lower/equal priority than the new thread.
+# Save the current thread context, insert the new thread in its place.
+libn64_syscall_thread_create_start_new_thread:
+  addu $at, $k0, $zero
+  la $k0, libn64_syscall_thread_create_start_new_thread_continue
+  sw $k1, 0x4($at)
+  j libn64_context_save
+  lw $k1, 0x8($at)
+
+libn64_syscall_thread_create_start_new_thread_continue:
+  jal libn64_exception_handler_queue_thread
+  lw $k1, 0x4($k0)
+
+# Set the new thread's status/coprocessor status, ASID, and stack/$gp.
+# $k1 must be the address of the new thread (so the ASID can be set).
   lw $k1, 0x8($k0)
+  lw $a1, 0x010($k1)
+  lw $a0, 0x01C($k1)
+
+libn64_syscall_thread_create_start_new:
+  mtc0 $a1, $14
+  addiu $at, $zero, 0x401
+  mtc0 $at, $12
+  srl $at, $k1, 0x9
+  andi $at, $at, 0xFF
+  mtc0 $at, $10
+  lui $sp, 0x8000
+  la $gp, _gp
+
+# By default, don't listen for any RCP interrupts.
+  lui $at, 0xA430
+  sw $zero, 0xC($at)
+
+# If the thread returns, route it to libn64_thread_exit.
+  la $ra, libn64_thread_exit
+  eret
 
 .size libn64_syscall_thread_create,.-libn64_syscall_thread_create
 
