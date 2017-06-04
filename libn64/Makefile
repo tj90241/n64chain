@@ -29,6 +29,7 @@ ASMFILES = $(call FIXPATH,\
 	os/asm/boot.s \
 	os/asm/context.s \
 	os/asm/exception.s \
+	os/asm/message.s \
 	os/asm/syscall.s \
 )
 

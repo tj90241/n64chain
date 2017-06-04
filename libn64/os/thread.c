@@ -11,9 +11,10 @@
 #include <libn64.h>
 #include <os/thread.h>
 #include <os/thread_table.h>
+#include <stddef.h>
 
 // Initialize the thread table.
-void libn64_thread_early_init(uint32_t kernel_sp) {
+libn64_thread libn64_thread_early_init(uint32_t kernel_sp) {
   struct libn64_thread_internal *self;
   unsigned i;
 
@@ -24,11 +25,11 @@ void libn64_thread_early_init(uint32_t kernel_sp) {
   struct libn64_thread_internal *thread_block =
     (struct libn64_thread_internal*) (kernel_sp + LIBN64_THREADS_MAX * 0x10);
 
+  // Invalidate the thread message cache.
   __asm__(
     ".set noat\n\t"
     "lui $at, 0x8000\n\t"
-    "sw %0, 0x424($at)\n\t"
-    :: "r"(thread_block)
+    "sw $zero, 0x424($at)\n\t"
   );
 
   // Initialize the thread stack.
@@ -43,6 +44,9 @@ void libn64_thread_early_init(uint32_t kernel_sp) {
 
   thread_table->ready_queue.heap[0].priority = LIBN64_THREAD_MIN_PRIORITY;
   thread_table->ready_queue.heap[0].thread = self;
+
   self->priority = LIBN64_THREAD_MIN_PRIORITY;
+  self->messages = NULL;
+  return self;
 }
 

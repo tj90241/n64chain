@@ -21,10 +21,14 @@ void main(void *);
 // Entry point (invoked from IPL handler).
 libn64func __attribute__((noreturn))
 void libn64_main(uint32_t kernel_sp, uint32_t bss_end) {
-  libn64_thread_early_init(kernel_sp);
+  libn64_thread kthread = libn64_thread_early_init(kernel_sp);
 
   // Put the given physical memory region under control of the MM.
   libn64_mm_init(bss_end, kernel_sp - 256);
+
+  // Send a message to ourself to warm up the message cache.
+  libn64_send_message(kthread, 0);
+  libn64_recv_message();
 
   // Hand control over to the application (in another thread).
   libn64_thread_create(main, NULL, LIBN64_THREAD_MIN_PRIORITY + 1);
