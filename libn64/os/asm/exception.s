@@ -472,7 +472,7 @@ libn64_exception_handler_queue_thread:
 
 # Increment the thread queue count, write it back.
   lw $a0, ($k0)
-  lw $at, 0x190($k1)
+  lw $at, 0x198($k1)
   addiu $a0, $a0, 0x1
   sw $a0, ($k0)
 

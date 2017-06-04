@@ -31,10 +31,9 @@ struct libn64_thread_state {
 struct libn64_thread_internal {
   struct libn64_thread_state state;
 
-  unsigned priority;
   struct message *messages_head;
   struct message *messages_tail;
-  unsigned status;
+  unsigned priority, status;
 
   uint32_t count[2];
   uint32_t unused[6];

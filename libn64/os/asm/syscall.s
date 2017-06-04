@@ -57,11 +57,10 @@ libn64_syscall_thread_create_invalidate_loop:
 # Flush out $a0/$a1 to the thread's $a1/$a0 registers as well.
   lw $at, 0x8($k0)
   cache 0xD, 0x010($k1)
-  lw $at, 0x190($at)
-  cache 0xD, 0x190($k1)
-  sw $a2, 0x190($k1)
-  sw $zero, 0x194($k1)
-  sw $zero, 0x198($k1)
+  lw $at, 0x198($at)
+  cache 0xD, 0x198($k1)
+  sd $zero, 0x190($k1)
+  sw $a2, 0x198($k1)
   subu $at, $at, $a2
   sw $a0, 0x010($k1)
   bltz $at, libn64_syscall_thread_create_start_new_thread
