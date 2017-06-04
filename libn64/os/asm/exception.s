@@ -8,7 +8,7 @@
 # 'LICENSE', which is part of this source code package.
 #
 
-#include <os/syscall.h>
+#include <syscall.h>
 
 .section .text.libn64, "ax", @progbits
 

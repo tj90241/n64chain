@@ -8,8 +8,8 @@
 // 'LICENSE', which is part of this source code package.
 //
 
+#include <fbtext.h>
 #include <libn64.h>
-#include <os/fbtext.h>
 #include <stdint.h>
 
 // Methods for rendering a character to a 16 or 32-bit RGBA framebuffer.

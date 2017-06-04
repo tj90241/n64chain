@@ -120,6 +120,10 @@ libn64_syscall_thread_create_start_new:
   la $ra, libn64_thread_exit
   eret
 
+libn64_thread_exit:
+  addiu $at, $zero, 0x1
+  syscall
+
 .size libn64_syscall_thread_create,.-libn64_syscall_thread_create
 
 # -------------------------------------------------------------------

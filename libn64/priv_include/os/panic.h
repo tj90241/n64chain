@@ -1,5 +1,5 @@
 //
-// libn64/include/os/kthread.h: libn64 kernel thread.
+// libn64/priv_include/os/panic.h: Fatal crash handler.
 //
 // n64chain: A (free) open-source N64 development toolchain.
 // Copyright 2014-16 Tyler J. Stachecki <stachecki.tyler@gmail.com>
@@ -8,13 +8,14 @@
 // 'LICENSE', which is part of this source code package.
 //
 
-#include <libn64.h>
+#ifndef LIBN64_PRIV_INCLUDE_OS_PANIC_H
+#define LIBN64_PRIV_INCLUDE_OS_PANIC_H
 
-#ifndef LIBN64_INCLUDE_OS_KTHREAD_H
-#define LIBN64_INCLUDE_OS_KTHREAD_H
+#include <libn64.h>
+#include <os/thread.h>
 
 libn64func __attribute__((noreturn))
-void libn64_kthread(void);
+void libn64_panic_from_isr(void);
 
 #endif
 

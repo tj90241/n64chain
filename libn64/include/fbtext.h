@@ -1,5 +1,5 @@
 //
-// libn64/include/os/fbtext.h: Framebuffer text routines.
+// libn64/include/fbtext.h: Framebuffer text routines.
 //
 // n64chain: A (free) open-source N64 development toolchain.
 // Copyright 2014-16 Tyler J. Stachecki <stachecki.tyler@gmail.com>
@@ -8,8 +8,8 @@
 // 'LICENSE', which is part of this source code package.
 //
 
-#ifndef LIBN64_INCLUDE_OS_FBTEXT_H
-#define LIBN64_INCLUDE_OS_FBTEXT_H
+#ifndef LIBN64_FBTEXT_H
+#define LIBN64_FBTEXT_H
 
 #include <libn64.h>
 #include <stdint.h>

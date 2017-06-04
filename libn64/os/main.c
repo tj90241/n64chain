@@ -13,8 +13,8 @@
 #include <os/mm.h>
 #include <os/thread.h>
 #include <os/thread_table.h>
-#include <os/syscall.h>
 #include <stddef.h>
+#include <syscall.h>
 
 void main(void *);
 

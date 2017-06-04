@@ -8,10 +8,10 @@
 // 'LICENSE', which is part of this source code package.
 //
 
-#include <os/fbtext.h>
-#include <os/syscall.h>
+#include <fbtext.h>
 #include <rcp/vi.h>
 #include <stdint.h>
+#include <syscall.h>
 
 // These pre-defined values are suitable for NTSC.
 // TODO: Add support for PAL and PAL-M televisions.

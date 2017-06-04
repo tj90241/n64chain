@@ -1,5 +1,5 @@
 //
-// libn64/include/os/syscall.h: System call definitions.
+// libn64/include/syscall.h: System call definitions.
 //
 // n64chain: A (free) open-source N64 development toolchain.
 // Copyright 2014-16 Tyler J. Stachecki <stachecki.tyler@gmail.com>
@@ -19,6 +19,7 @@
 #define LIBN64_SYSCALL_INVALID       4
 
 #ifndef __ASSEMBLER__
+#include <stdint.h>
 
 // Spawns a new thread with a given priority (which receives arg). If
 // the new thread has a higher priority than the current thread, a

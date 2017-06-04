@@ -1,5 +1,5 @@
 //
-// libn64/include/os/thread.h: OS thread definitions.
+// libn64/priv_include/os/thread.h: OS thread definitions.
 //
 // n64chain: A (free) open-source N64 development toolchain.
 // Copyright 2014-16 Tyler J. Stachecki <stachecki.tyler@gmail.com>
@@ -8,8 +8,8 @@
 // 'LICENSE', which is part of this source code package.
 //
 
-#ifndef LIBN64_INCLUDE_OS_THREAD_H
-#define LIBN64_INCLUDE_OS_THREAD_H
+#ifndef LIBN64_PRIV_INCLUDE_OS_THREAD_H
+#define LIBN64_PRIV_INCLUDE_OS_THREAD_H
 
 #include <stdint.h>
 

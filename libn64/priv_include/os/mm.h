@@ -1,5 +1,5 @@
 //
-// libn64/include/os/mm.h: OS memory manager definitions.
+// libn64/priv_include/os/mm.h: OS memory manager definitions.
 //
 // n64chain: A (free) open-source N64 development toolchain.
 // Copyright 2014-16 Tyler J. Stachecki <stachecki.tyler@gmail.com>
@@ -8,8 +8,8 @@
 // 'LICENSE', which is part of this source code package.
 //
 
-#ifndef LIBN64_INCLUDE_OS_MM_H
-#define LIBN64_INCLUDE_OS_MM_H
+#ifndef LIBN64_PRIV_INCLUDE_OS_MM_H
+#define LIBN64_PRIV_INCLUDE_OS_MM_H
 
 #include <stdint.h>
 
