@@ -16,8 +16,7 @@
 .set noreorder
 
 # -------------------------------------------------------------------
-#  Receives a message ($a0/message buffer); blocks if nothing available.
-#  A slight optimization: we assume that $k1 is non-zero at entry.
+#  Receive a message; block if there's nothing in the queue.
 # -------------------------------------------------------------------
 .global libn64_recv_message
 .type libn64_recv_message, @function
@@ -33,25 +32,31 @@ libn64_recv_message_block:
   beq $k1, $zero, libn64_recv_message_block
   nop
 
-# Acknowledge the message, move it from the thread to the cache.
+# Deque the message at the head/front of the message queue.
+# If the message has a successor, make it the new queue head.
+# If there is no successor, then there is no tail, so update it.
   lw $at, 0x0($k1)
   sw $at, 0x194($k0)
+  bnel $at, $zero, libn64_recv_message_after_next_update
+  sw $zero, 0x4($at)
+  sw $zero, 0x198($k0)
 
+# Return the message to the message cache.
+libn64_recv_message_after_next_update:
   lui $k0, 0x8000
   lw $at, 0x424($k0)
   sw $at, 0x0($k1)
   sw $k1, 0x424($k0)
 
-# Read the message and its contents, return them to the caller.
-  lw $at, 0x4($k1)
-  ld $k1, 0x8($k1)
+# Return the contents of the message to the caller.
+  lw $v0, 0x8($k1)
   jr $ra
-  sd $k1, 0x0($a0)
+  lw $v1, 0xC($k1)
 
 .size libn64_recv_message,.-libn64_recv_message
 
 # -------------------------------------------------------------------
-#  Sends a message ($a1/message, $a2/data[0], $a3/data[1]) to a thread ($a0).
+#  Sends a message ($a1/message, $a2/data) to a thread ($a0).
 # -------------------------------------------------------------------
 .global libn64_send_message
 .type libn64_send_message, @function
@@ -60,23 +65,29 @@ libn64_send_message:
   lui $k1, 0x8000
   lw $k0, 0x424($k1)
   beq $k0, $zero, libn64_send_message_expand_cache
-  lw $at, 0x194($a0)
+  lwu $at, 0x198($a0)
+  addu $k1, $at, $zero
 
-# Allocate a message from the cache and populate it.
-  lw $k1, 0x0($k0)
-  cache 0xD, 0x0($k0)
-  sw $at, 0x0($k0)
-  sw $a1, 0x4($k0)
-  sw $a2, 0x8($k0)
-  sw $a3, 0xC($k0)
-
-  lui $at, 0x8000
-  sw $k1, 0x424($at)
-  jr $ra
+# Allocate a message from the message cache and populate it.
+# If there a message already at the tail, link this to it.
+# If there isn't a message, then we're the head, so update it.
+  bnel $at, $zero, libn64_send_message_after_prev_update
+  sw $k0, 0x0($k1)
   sw $k0, 0x194($a0)
 
+# Stuff the message, update the tail, remove from the cache.
+libn64_send_message_after_prev_update:
+  lw $k1, 0x0($k0)
+  sd $at, 0x0($k0)
+  sw $a1, 0x8($k0)
+  sw $a2, 0xC($k0)
+
+  lui $at, 0x8000
+  sw $k0, 0x198($a0)
+  jr $ra
+  sw $k1, 0x424($at)
+
 # The message cache is dried up; expand the cache.
-.align 5
 libn64_send_message_expand_cache:
   addu $k1, $ra, $zero
   jal libn64_exception_handler_allocpage

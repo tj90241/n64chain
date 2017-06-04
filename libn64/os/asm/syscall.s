@@ -61,6 +61,7 @@ libn64_syscall_thread_create_invalidate_loop:
   cache 0xD, 0x190($k1)
   sw $a2, 0x190($k1)
   sw $zero, 0x194($k1)
+  sw $zero, 0x198($k1)
   subu $at, $at, $a2
   sw $a0, 0x010($k1)
   bltz $at, libn64_syscall_thread_create_start_new_thread
@@ -200,39 +201,31 @@ libn64_syscall_page_free:
 #  libn64::send_message
 #    $a0 = recipient
 #    $a1 = message
-#    $a2 = param1
-#    $a3 = param2
+#    $a2 = param
 # -------------------------------------------------------------------
 .global libn64_syscall_send_message
 .type libn64_syscall_send_message, @function
 .align 5
 libn64_syscall_send_message:
-  lui $at, 0x8000
-  cache 0xD, 0x400($at)
-  sw $ra, 0x400($at)
+  mtc0 $ra, $30
   jal libn64_send_message
   mtc0 $k1, $14
-  lui $at, 0x8000
-  lw $ra, 0x400($at)
+  mfc0 $ra, $30
   eret
 
 .size libn64_syscall_send_message,.-libn64_syscall_send_message
 
 # -------------------------------------------------------------------
 #  libn64::recv_message
-#    $a0 = data buffer
 # -------------------------------------------------------------------
 .global libn64_syscall_recv_message
 .type libn64_syscall_recv_message, @function
 .align 5
 libn64_syscall_recv_message:
-  lui $at, 0x8000
-  cache 0xD, 0x400($at)
-  sw $ra, 0x400($at)
+  mtc0 $ra, $30
   jal libn64_recv_message
   mtc0 $k1, $14
-  lui $at, 0x8000
-  lw $ra, 0x400($at)
+  mfc0 $ra, $30
   eret
 
 .size libn64_syscall_recv_message,.-libn64_syscall_recv_message

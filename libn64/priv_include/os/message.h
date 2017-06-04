@@ -15,8 +15,9 @@
 
 struct libn64_message {
   struct libn64_message *next;
+  struct libn64_message *prev;
   uint32_t message;
-  uint32_t data[2];
+  uint32_t data;
 } __attribute__((aligned(16)));
 
 #endif

@@ -46,7 +46,7 @@ libn64_thread libn64_thread_early_init(uint32_t kernel_sp) {
   thread_table->ready_queue.heap[0].thread = self;
 
   self->priority = LIBN64_THREAD_MIN_PRIORITY;
-  self->messages = NULL;
+  self->messages_head = self->messages_tail = NULL;
   return self;
 }
 
