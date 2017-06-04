@@ -65,8 +65,8 @@ libn64_tlb_exception_handler:
   jal libn64_exception_handler_allocpage
   sll $k0, $k0, 0xC
   lui $at, 0x8000
-  or $k0, $k0, $at
   or $ra, $k0, $at
+  sw $ra, 0x42C($at)
 
 libn64_tlb_exception_handler_alloc_l2_stack_entries_loop:
   addiu $ra, $ra, 0x80
@@ -76,22 +76,23 @@ libn64_tlb_exception_handler_alloc_l2_stack_entries_loop:
   beql $at, $zero, libn64_tlb_exception_handler_alloc_l2_stack_entries_loop
   sw $ra, -0x80($ra)
   sw $zero, -0x80($ra)
+  addiu $ra, $ra, -0x1000
 
 # Take the first entry from the L2 page table chain and wipe it clean.
 libn64_tlb_exception_handler_init_l2_stack_entry:
-  lw $ra, 0x0($ra)
+  lw $k0, 0x0($ra)
   lui $at, 0x8000
-  sw $ra, 0x42C($at)
-  addiu $at, $k0, 0x80
+  sw $k0, 0x42C($at)
+  addiu $at, $ra, 0x80
 
 libn64_tlb_exception_handler_clear_l2_stack_entry_loop:
   cache 0xD, -0x10($at)
   addiu $at, $at, -0x10
   sd $zero, 0x0($at)
-  bne $at, $k0, libn64_tlb_exception_handler_clear_l2_stack_entry_loop
+  bne $at, $ra, libn64_tlb_exception_handler_clear_l2_stack_entry_loop
   sd $zero, 0x8($at)
 
-  srl $at, $k0, 0x7
+  srl $at, $ra, 0x7
   lhu $k0, 0x1C0($k1)
   sh $at, 0x1C0($k1)
 
@@ -156,7 +157,6 @@ libn64_tlb_exception_handler_update_tlb_continue_odd:
 libn64_tlb_exception_handler_finish:
   mfc0 $ra, $30
   eret
-  nop
 
 # Address is not within 8MB "stack boundary" of the top of *useg. Since
 # we only support virtual stack addresses, this is fatal, so panic.
