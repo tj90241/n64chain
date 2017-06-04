@@ -38,6 +38,7 @@ struct libn64_fbtext_context fbtext;
 unsigned threads_spawned;
 
 void thread_main(void *arg __attribute__((unused))) {
+  libn64_recv_message();
   unsigned my_prio;
 
   my_prio = (++threads_spawned);
@@ -69,7 +70,8 @@ void main(void *unused __attribute__((unused))) {
       LIBN64_FBTEXT_COLOR_BLACK, 0x140, LIBN64_FBTEXT_16BPP);
 
   threads_spawned = 1;
-  libn64_thread_create(thread_main, &fbtext, 2);
+  libn64_thread child = libn64_thread_create(thread_main, &fbtext, 3);
+  libn64_send_message(child, 2);
 
   libn64_fbtext_puts(&fbtext, "Idle thread!\n");
 }

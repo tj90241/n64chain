@@ -16,6 +16,57 @@
 .set noreorder
 
 # -------------------------------------------------------------------
+#  Blocks the active thread, places the next ready one on the CPU.
+#  When libn64_unblock_thread is called on the thread blocked by this
+#  function, the blocked thread resumes execution at ErrorEPC + 0x4.
+#
+#  Intended to be invoked as the the return of a libn64_context_save.
+# -------------------------------------------------------------------
+.global libn64_block_thread
+.type libn64_block_thread, @function
+.align 5
+libn64_block_thread:
+  mfc0 $at, $12
+  sw $ra, 0x4($k0)
+  ori $at, $at, 0x4
+  sw $at, 0x80($k0)
+
+# Mark the thread blocked and dequeue it.
+  jal libn64_exception_handler_dequeue_thread
+  lw $k1, 0x8($k0)
+
+# Switch to the next active thread.
+  j libn64_context_restore
+  lw $k1, 0x8($k0)
+
+.size libn64_block_thread,.-libn64_block_thread
+
+# -------------------------------------------------------------------
+#  Queues a new (higher priority) thread and context switches to it.
+#  See the above function as to how this function should be used.
+#
+#  Intended to be invoked as the the return of a libn64_context_save.
+# -------------------------------------------------------------------
+.global libn64_unblock_hp_thread
+.type libn64_unblock_hp_thread, @function
+.align 5
+libn64_unblock_hp_thread:
+  mfc0 $k1, $30
+  lw $at, 0x19C($k1)
+  sw $ra, 0x4($k0)
+  addu $at, $at, 0x4
+
+# Queue the blocked thread again.
+  jal libn64_exception_handler_queue_thread
+  mtc0 $at, $30
+
+# Switch to the now unblocked thread.
+  j libn64_context_restore
+  lw $k1, 0x8($k0)
+
+.size libn64_unblock_hp_thread,.-libn64_unblock_hp_thread
+
+# -------------------------------------------------------------------
 #  Loads the context from the thread pointed to by $k1. After the context is
 #  reloaded, we return from the exception handler (i.e., the thread resumes
 #  execution).

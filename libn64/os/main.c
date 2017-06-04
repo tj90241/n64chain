@@ -9,10 +9,9 @@
 //
 
 #include <libn64.h>
-#include <os/kthread.h>
+#include <os/idle_thread.h>
 #include <os/mm.h>
 #include <os/thread.h>
-#include <os/thread_table.h>
 #include <stddef.h>
 #include <syscall.h>
 
@@ -21,19 +20,20 @@ void main(void *);
 // Entry point (invoked from IPL handler).
 libn64func __attribute__((noreturn))
 void libn64_main(uint32_t kernel_sp, uint32_t bss_end) {
-  libn64_thread kthread = libn64_thread_early_init(kernel_sp);
+  libn64_thread idle_thread = libn64_thread_early_init(kernel_sp);
 
   // Put the given physical memory region under control of the MM.
   libn64_mm_init(bss_end, kernel_sp - 256);
 
   // Send a message to ourself to warm up the message cache.
-  libn64_send_message(kthread, 0);
+  libn64_send_message(idle_thread, 0);
   libn64_recv_message();
 
   // Hand control over to the application (in another thread).
   libn64_thread_create(main, NULL, LIBN64_THREAD_MIN_PRIORITY + 1);
 
-  // This thread becomes the kernel thread.
-  libn64_kthread();
+  // This thread becomes the idle thread.
+  libn64_idle_thread();
+  __builtin_unreachable();
 }
 

@@ -16,47 +16,8 @@
 .set noreorder
 
 # -------------------------------------------------------------------
-#  Receive a message; block if there's nothing in the queue.
-# -------------------------------------------------------------------
-.global libn64_recv_message
-.type libn64_recv_message, @function
-.align 5
-libn64_recv_message:
-  lui $k0, 0x8000
-  lw $k0, 0x420($k0)
-  lw $k0, 0x8($k0)
-  lw $k1, 0x190($k0)
-
-# TODO: Block until a message comes in.
-libn64_recv_message_block:
-  beq $k1, $zero, libn64_recv_message_block
-  nop
-
-# Deque the message at the head/front of the message queue.
-# If the message has a successor, make it the new queue head.
-# If there is no successor, then there is no tail, so update it.
-  lw $at, 0x0($k1)
-  sw $at, 0x190($k0)
-  bnel $at, $zero, libn64_recv_message_after_next_update
-  sw $zero, 0x4($at)
-  sw $zero, 0x194($k0)
-
-# Return the message to the message cache.
-libn64_recv_message_after_next_update:
-  lui $k0, 0x8000
-  lw $at, 0x424($k0)
-  sw $at, 0x0($k1)
-  sw $k1, 0x424($k0)
-
-# Return the contents of the message to the caller.
-  lw $v0, 0x8($k1)
-  jr $ra
-  lw $v1, 0xC($k1)
-
-.size libn64_recv_message,.-libn64_recv_message
-
-# -------------------------------------------------------------------
 #  Sends a message ($a1/message, $a2/data) to a thread ($a0).
+#  Caution: some code depends on $at = 0x8000_0000 at exit.
 # -------------------------------------------------------------------
 .global libn64_send_message
 .type libn64_send_message, @function

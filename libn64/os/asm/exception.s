@@ -391,7 +391,7 @@ libn64_exception_handler_allocpage_found:
 #  per loop. Other than that, the only stalls are due to data
 #  accesses that miss the cache.
 #
-#  Clobbers: $a0-$a3
+#  Clobbers: $k1, $a0-$a3
 # -------------------------------------------------------------------
 .global libn64_exception_handler_dequeue_thread
 .type libn64_exception_handler_dequeue_thread, @function

@@ -1,5 +1,5 @@
 //
-// libn64/os/kthread.c: libn64 kernel thread.
+// libn64/priv_include/os/idle_thread.h: libn64 idle thread.
 //
 // n64chain: A (free) open-source N64 development toolchain.
 // Copyright 2014-16 Tyler J. Stachecki <stachecki.tyler@gmail.com>
@@ -8,10 +8,13 @@
 // 'LICENSE', which is part of this source code package.
 //
 
-#include <os/kthread.h>
+#include <libn64.h>
 
-void libn64_kthread(void) {
-  while (1);
-  __builtin_unreachable();
-}
+#ifndef LIBN64_PRIV_INCLUDE_OS_IDLE_THREAD_H
+#define LIBN64_PRIV_INCLUDE_OS_IDLE_THREAD_H
+
+libn64func __attribute__((noreturn))
+void libn64_idle_thread(void);
+
+#endif
 

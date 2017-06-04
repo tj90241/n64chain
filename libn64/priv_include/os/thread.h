@@ -33,7 +33,7 @@ struct libn64_thread_internal {
 
   struct message *messages_head;
   struct message *messages_tail;
-  unsigned priority, status;
+  uint32_t priority, blocked_call;
 
   uint32_t count[2];
   uint32_t unused[6];

@@ -25,7 +25,6 @@
 .set THREAD_FREE_COUNT, ((LIBN64_THREADS_MAX + 1) * 0x8)
 .set THREAD_FREE_LIST, (THREAD_FREE_COUNT + 0x4)
 
-.global libn64_syscall_thread_create
 .type libn64_syscall_thread_create, @function
 .align 5
 libn64_syscall_thread_create:
@@ -33,73 +32,74 @@ libn64_syscall_thread_create:
   lw $k0, 0x420($k0)
   mtc0 $k1, $14
 
-# Grab the next available thread from the free list.
+# Grab the next available thread from the free thread list.
   lw $k1, THREAD_FREE_COUNT($k0)
   addiu $k1, $k1, -0x1
   sw $k1, THREAD_FREE_COUNT($k0)
 
   sll $k1, $k1, 0x2
   addu $k1, $k1, $k0
-  lw $k1, THREAD_FREE_LIST($k1)
+  lw $v0, THREAD_FREE_LIST($k1)
 
 # Invalidate all of the new thread's L1 page table entries.
-  addiu $at, $k1, 0x40
+  addiu $at, $v0, 0x40
 
 libn64_syscall_thread_create_invalidate_loop:
   cache 0xD, -0x10($at)
   addiu $at, $at, -0x10
   sd $zero, 0x1C0($at)
-  bne $at, $k1, libn64_syscall_thread_create_invalidate_loop
+  bne $at, $v0, libn64_syscall_thread_create_invalidate_loop
   sd $zero, 0x1C8($at)
 
 # Compare the running thread's priority against the new thread.
 # If the running thread has a higher priority, keep it going.
+# Set the thread's initial message queue pointers and priority.
 # Flush out $a0/$a1 to the thread's $a1/$a0 registers as well.
   lw $at, 0x8($k0)
-  cache 0xD, 0x010($k1)
+  cache 0xD, 0x010($v0)
   lw $at, 0x198($at)
-  cache 0xD, 0x198($k1)
-  sd $zero, 0x190($k1)
-  sw $a2, 0x198($k1)
+  cache 0xD, 0x198($v0)
+  sw $a0, 0x010($v0)
+  dsll32 $a0, $a2, 0x0
+  sd $a0, 0x198($v0)
   subu $at, $at, $a2
-  sw $a0, 0x010($k1)
+  sd $zero, 0x190($v0)
   bltz $at, libn64_syscall_thread_create_start_new_thread
-  sw $a1, 0x01C($k1)
+  sw $a1, 0x01C($v0)
 
-# The running/active thread has a higher priority than the new thread.
+# The running thread has a higher priority than the new thread.
 # Queue the new thread so that it runs sometime in the future.
 libn64_syscall_thread_queue_new_thread:
-  sw $a2, 0x014($k1)
-  sw $a3, 0x018($k1)
+  sw $a2, 0x014($v0)
+  sw $a3, 0x018($v0)
 
   la $at, libn64_syscall_thread_create_start_new
   sw $ra, 0x4($k0)
   jal libn64_exception_handler_queue_thread
-  sw $at, 0x07C($k1)
+  sw $at, 0x07C($v0)
 
 # Restore destroyed variables and return.
-  lw $v0, 0x4($k0)
   lw $a0, 0x010($v0)
   lw $a1, 0x01C($v0)
   lw $a2, 0x014($v0)
   lw $a3, 0x018($v0)
   eret
 
-# The running/active thread has a lower/equal priority than the new thread.
+# The running thread has a lower/equal priority than the new thread.
 # Save the current thread context, insert the new thread in its place.
 libn64_syscall_thread_create_start_new_thread:
   addu $at, $k0, $zero
   la $k0, libn64_syscall_thread_create_start_new_thread_continue
-  sw $k1, 0x4($at)
+  sw $v0, 0x4($at)
   j libn64_context_save
   lw $k1, 0x8($at)
 
 libn64_syscall_thread_create_start_new_thread_continue:
-  jal libn64_exception_handler_queue_thread
   lw $k1, 0x4($k0)
+  jal libn64_exception_handler_queue_thread
+  addu $v0, $k1, $zero
 
 # Set the new thread's status/coprocessor status, ASID, and stack/$gp.
-  lw $v0, 0x8($k0)
   lw $a1, 0x010($v0)
   lw $a0, 0x01C($v0)
 
@@ -130,14 +130,12 @@ libn64_thread_exit:
 # -------------------------------------------------------------------
 #  libn64::thread_exit
 # -------------------------------------------------------------------
-.global libn64_syscall_thread_exit
 .type libn64_syscall_thread_exit, @function
 .align 5
 
 libn64_syscall_thread_exit:
   lui $k0, 0x8000
   lw $k0, 0x420($k0)
-  mtc0 $k1, $14
   sw $ra, 0x4($k0)
   jal libn64_exception_handler_dequeue_thread
   mtc0 $k1, $14
@@ -149,7 +147,6 @@ libn64_syscall_thread_exit:
 # -------------------------------------------------------------------
 #  libn64::page_alloc
 # -------------------------------------------------------------------
-.global libn64_syscall_page_alloc
 .type libn64_syscall_page_alloc, @function
 .align 5
 libn64_syscall_page_alloc:
@@ -168,7 +165,6 @@ libn64_syscall_page_alloc:
 #  libn64::page_free
 #    $a0 = page address
 # -------------------------------------------------------------------
-.global libn64_syscall_page_free
 .type libn64_syscall_page_free, @function
 .align 5
 libn64_syscall_page_free:
@@ -202,7 +198,6 @@ libn64_syscall_page_free:
 #    $a1 = message
 #    $a2 = param
 # -------------------------------------------------------------------
-.global libn64_syscall_send_message
 .type libn64_syscall_send_message, @function
 .align 5
 libn64_syscall_send_message:
@@ -210,7 +205,25 @@ libn64_syscall_send_message:
   jal libn64_send_message
   mtc0 $k1, $14
   mfc0 $ra, $30
+
+# Check to see if we unblocked a higher priority thread.
+  lw $at, 0x420($at)
+  mfc0 $ra, $30
+  lw $at, 0x8($at)
+
+  lw $k1, 0x198($a0)
+  lw $k0, 0x198($at)
+
+  subu $k1, $k1, $k0
+  bgtzl $k1, libn64_send_message_unblock_hp_thread
+  mtc0 $a0, $30
   eret
+
+# We did, so context switch to the now unblocked thread.
+libn64_send_message_unblock_hp_thread:
+  la $k0, libn64_unblock_hp_thread
+  j libn64_context_save
+  addu $k1, $at, $zero
 
 .size libn64_syscall_send_message,.-libn64_syscall_send_message
 
@@ -221,19 +234,52 @@ libn64_syscall_send_message:
 .type libn64_syscall_recv_message, @function
 .align 5
 libn64_syscall_recv_message:
-  mtc0 $ra, $30
-  jal libn64_recv_message
   mtc0 $k1, $14
-  mfc0 $ra, $30
+  lui $at, 0x8000
+  lw $at, 0x420($at)
+  lw $at, 0x8($at)
+  lw $k1, 0x190($at)
+
+# If there are no messages available, block the thread.
+libn64_recv_message_block:
+  bnel $k1, $zero, libn64_recv_message_deque
+  lw $k0, 0x0($k1)
+
+# No messages are available; set the thread's unblock return
+# to this syscall, deque it, and schedule the next thread.
+  sw $k0, 0x19C($at)
+  la $k0, libn64_block_thread
+  j libn64_context_save
+  addu $k1, $at, $zero
+
+# Deque the message k0 the head/front of the message queue.
+# If the message has a successor, make it the new queue head.
+# If there is no successor, then there is no tail; update it.
+libn64_recv_message_deque:
+  sw $k0, 0x190($at)
+  bnel $k0, $zero, libn64_recv_message_after_next_update
+  sw $zero, 0x4($k0)
+  sw $zero, 0x194($at)
+
+# Return the message to the message cache.
+libn64_recv_message_after_next_update:
+  lui $at, 0x8000
+  lw $k0, 0x424($at)
+  sw $k0, 0x0($k1)
+  sw $k1, 0x424($at)
+
+# Return the contents of the message to the caller.
+  lw $v0, 0x8($k1)
+  lw $v1, 0xC($k1)
   eret
 
 .size libn64_syscall_recv_message,.-libn64_syscall_recv_message
 
-.section  .rodata
-
 # -------------------------------------------------------------------
 #  System call table.
 # -------------------------------------------------------------------
+.section  .rodata
+
 .global libn64_syscall_table
 .type libn64_syscall_table, @object
 .align 4
