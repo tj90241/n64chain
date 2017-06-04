@@ -29,9 +29,9 @@
 // limit, or if too many threads are waiting to be reaped), a non-zero
 // value is returned. Otherwise, zero is returned to indicate success.
 libn64func __attribute__((always_inline))
-static inline int libn64_thread_create(void (*entrypoint)(void *),
-    void *arg, unsigned priority) {
-  register uint32_t rv __asm__("$v0");
+static inline libn64_thread libn64_thread_create(
+    void (*entrypoint)(void *), void *arg, unsigned priority) {
+  register libn64_thread rv __asm__("$v0");
   register void (*a0)(void *) __asm__("$a0") = entrypoint;
   register void *a1 __asm__("$a1") = arg;
   register unsigned a2 __asm__("$a2") = priority;

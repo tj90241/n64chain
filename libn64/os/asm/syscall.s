@@ -76,11 +76,11 @@ libn64_syscall_thread_queue_new_thread:
   sw $at, 0x07C($k1)
 
 # Restore destroyed variables and return.
-  lw $k1, 0x4($k0)
-  lw $a0, 0x010($k1)
-  lw $a1, 0x01C($k1)
-  lw $a2, 0x014($k1)
-  lw $a3, 0x018($k1)
+  lw $v0, 0x4($k0)
+  lw $a0, 0x010($v0)
+  lw $a1, 0x01C($v0)
+  lw $a2, 0x014($v0)
+  lw $a3, 0x018($v0)
   eret
 
 # The running/active thread has a lower/equal priority than the new thread.
@@ -97,16 +97,15 @@ libn64_syscall_thread_create_start_new_thread_continue:
   lw $k1, 0x4($k0)
 
 # Set the new thread's status/coprocessor status, ASID, and stack/$gp.
-# $k1 must be the address of the new thread (so the ASID can be set).
-  lw $k1, 0x8($k0)
-  lw $a1, 0x010($k1)
-  lw $a0, 0x01C($k1)
+  lw $v0, 0x8($k0)
+  lw $a1, 0x010($v0)
+  lw $a0, 0x01C($v0)
 
 libn64_syscall_thread_create_start_new:
   mtc0 $a1, $14
   addiu $at, $zero, 0x401
   mtc0 $at, $12
-  srl $at, $k1, 0x9
+  srl $at, $v0, 0x9
   andi $at, $at, 0xFF
   mtc0 $at, $10
   lui $sp, 0x8000

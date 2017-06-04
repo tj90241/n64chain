@@ -15,7 +15,7 @@
 #include <os/thread.h>
 
 struct libn64_thread_queue_entry {
-  struct libn64_thread *thread;
+  struct libn64_thread_internal *thread;
   unsigned priority;
 } __attribute__((aligned(8)));
 

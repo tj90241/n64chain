@@ -26,7 +26,7 @@ struct libn64_thread_state {
   uint64_t fp_regs[32];
 } __attribute__((aligned(16)));
 
-struct libn64_thread {
+struct libn64_thread_internal {
   struct libn64_thread_state state;
 
   unsigned priority;

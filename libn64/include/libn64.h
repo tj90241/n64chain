@@ -13,6 +13,8 @@
 
 #ifndef __ASSEMBLER__
 #define libn64func __attribute__ ((section (".text.libn64")))
+
+typedef void *libn64_thread;
 #endif
 
 #define LIBN64_THREADS_MAX 15

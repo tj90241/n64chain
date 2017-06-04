@@ -14,15 +14,15 @@
 
 // Initialize the thread table.
 void libn64_thread_early_init(uint32_t kernel_sp) {
-  struct libn64_thread *self;
+  struct libn64_thread_internal *self;
   unsigned i;
 
   // Determine the address of the thread table and thread block.
   struct libn64_thread_table *thread_table =
     (struct libn64_thread_table *) kernel_sp;
 
-  struct libn64_thread *thread_block =
-    (struct libn64_thread *) (kernel_sp + LIBN64_THREADS_MAX * 0x10);
+  struct libn64_thread_internal *thread_block =
+    (struct libn64_thread_internal*) (kernel_sp + LIBN64_THREADS_MAX * 0x10);
 
   __asm__(
     ".set noat\n\t"
