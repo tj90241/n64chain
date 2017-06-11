@@ -27,13 +27,13 @@
 .align 5
 libn64_block_thread:
   mfc0 $at, $12
-  sw $ra, 0x4($k0)
+  lw $k1, 0x8($k0)
   ori $at, $at, 0x4
-  sw $at, 0x80($k0)
 
 # Mark the thread blocked and dequeue it.
+  sw $ra, 0x4($k0)
   jal libn64_exception_handler_dequeue_thread
-  lw $k1, 0x8($k0)
+  sw $at, 0x80($k0)
 
 # Switch to the next active thread.
   j libn64_context_restore
@@ -51,16 +51,13 @@ libn64_block_thread:
 .type libn64_unblock_hp_thread, @function
 .align 5
 libn64_unblock_hp_thread:
-  mfc0 $k1, $30
-  lw $at, 0x19C($k1)
+
+# Mark the thread unblocked and queue it.
   sw $ra, 0x4($k0)
-  addu $at, $at, 0x4
-
-# Queue the blocked thread again.
   jal libn64_exception_handler_queue_thread
-  mtc0 $at, $30
+  addu $k1, $a0, $zero
 
-# Switch to the now unblocked thread.
+# Switch to the next active thread.
   j libn64_context_restore
   lw $k1, 0x8($k0)
 
@@ -102,8 +99,10 @@ libn64_context_restore:
   lw $v0, 0x080($k1)
   sw $at, 0xC($v1)
   mtc0 $v0, $12
+  lw $at, 0x19C($k1)
   lw $t4, 0x02C($k1)
   lw $t5, 0x030($k1)
+  mtc0 $at, $30
   lw $t6, 0x034($k1)
   lw $t7, 0x038($k1)
   lw $s0, 0x03C($k1)
@@ -119,9 +118,8 @@ libn64_context_restore:
   lw $gp, 0x064($k1)
   lw $sp, 0x068($k1)
   lw $fp, 0x06C($k1)
-  srl $v0, $v0, 26
-  andi $v1, $v0, 0x8
-  bne $v1, $zero, libn64_context_restore_fpu
+  sll $v0, $v0, 0x2
+  bltz $v0, libn64_context_restore_fpu
   lw $ra, 0x070($k1)
 
 libn64_context_restore_done:
@@ -147,9 +145,9 @@ libn64_context_restore_fpu:
   ldc1 $26, 0x0F8($k1)
   ldc1 $28, 0x100($k1)
   ldc1 $30, 0x108($k1)
-  and $v0, $v0, 0x1
+  sll $v0, $v0, 0x3
   lw $v1, 0x088($k1)
-  beq $v0, $zero, libn64_context_restore_done
+  bgez $v0, libn64_context_restore_done
   ctc1 $v1, $31
 
   ldc1 $1, 0x110($k1)
@@ -224,11 +222,12 @@ libn64_context_save_loop:
   sw $t6, 0x034($k1)
   sw $t7, 0x038($k1)
   sw $at, 0x080($k1)
-  srl $at, $at, 26
-  sw $s0, 0x03C($k1)
   lui $v1, 0xA430
-  sw $s1, 0x040($k1)
+  sw $s0, 0x03C($k1)
+  mfc0 $v0, $30
   lw $v1, 0x00C($v1)
+  sw $s1, 0x040($k1)
+  sw $v0, 0x19C($k1)
   sw $s2, 0x044($k1)
   sw $s3, 0x048($k1)
   sw $s4, 0x04C($k1)
@@ -243,10 +242,10 @@ libn64_context_save_loop:
   sw $fp, 0x06C($k1)
   sw $v0, 0x07C($k1)
   mfc0 $v0, $10
-  sw $ra, 0x070($k1)
   sw $v0, 0x084($k1)
-  and $v0, $at, 0x8
-  bne $v0, $zero, libn64_context_save_fpu
+  sll $v0, $at, 0x2
+  sw $ra, 0x070($k1)
+  bltz $v0, libn64_context_save_fpu
   sw $v1, 0x08C($k1)
 
 libn64_context_save_done:
@@ -278,10 +277,10 @@ libn64_context_save_fpu_loop:
   sdc1 $20, 0x0E0($k1)
   sdc1 $22, 0x0E8($k1)
   sdc1 $24, 0x0F0($k1)
-  and $v0, $at, 0x1
   sdc1 $26, 0x0F8($k1)
+  sll $v0, $at, 0x5
   sdc1 $28, 0x100($k1)
-  beq $v0, $zero, libn64_context_save_done
+  bgez $v0, libn64_context_save_done
   sdc1 $30, 0x108($k1)
   addiu $v1, $k1, 0x70
 
