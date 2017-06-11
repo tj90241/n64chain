@@ -24,6 +24,7 @@ SECTIONS {
   /* TEXT */
   .text 0xFFFFFFFF80000400 : AT (0xFFFFFFFF80000400) {
     *(.text.libn64.ipl)
+    *(.text.libn64.asm)
     *(.text.libn64);
 
     . = ALIGN(32);

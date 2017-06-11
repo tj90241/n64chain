@@ -8,7 +8,7 @@
 # 'LICENSE', which is part of this source code package.
 #
 
-.section .text.libn64, "ax", @progbits
+.section .text.libn64.asm, "ax", @progbits
 
 .set gp=64
 .set fp=64

@@ -10,7 +10,7 @@
 
 #include <libn64.h>
 
-.section .text.libn64, "ax", @progbits
+.section .text.libn64.asm, "ax", @progbits
 
 .set noat
 .set noreorder
