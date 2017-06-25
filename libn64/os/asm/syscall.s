@@ -107,7 +107,9 @@ libn64_syscall_thread_create_start_new_thread_continue:
 
 libn64_syscall_thread_create_start_new:
   mtc0 $a1, $14
-  addiu $at, $zero, 0x401
+
+# TODO: Enable interrupts once a handler for the RCP is in place.
+  addiu $at, $zero, 0x400
   mtc0 $at, $12
   srl $at, $v0, 0x9
   andi $at, $at, 0xFF
