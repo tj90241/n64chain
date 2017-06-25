@@ -58,7 +58,7 @@ libn64_syscall_thread_create_invalidate_loop:
   lw $at, 0x8($k0)
   cache 0xD, 0x010($v0)
   lw $at, 0x198($at)
-  cache 0xD, 0x198($v0)
+  cache 0xD, 0x190($v0)
   sw $a0, 0x010($v0)
   dsll32 $a0, $a2, 0x0
   sd $a0, 0x198($v0)
@@ -71,12 +71,14 @@ libn64_syscall_thread_create_invalidate_loop:
 # Queue the new thread so that it runs sometime in the future.
 libn64_syscall_thread_queue_new_thread:
   sw $a2, 0x014($v0)
+  addu $k1, $v0, $zero
   sw $a3, 0x018($v0)
-
+  addiu $a3, $zero, 0x6
+  sw $a3, 0x80($v0)
   la $at, libn64_syscall_thread_create_start_new
   sw $ra, 0x4($k0)
   jal libn64_exception_handler_queue_thread
-  sw $at, 0x07C($v0)
+  sw $at, 0x19C($v0)
 
 # Restore destroyed variables and return.
   lw $a0, 0x010($v0)
