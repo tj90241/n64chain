@@ -47,6 +47,9 @@ libn64_thread libn64_thread_early_init(uint32_t kernel_sp) {
 
   self->priority = LIBN64_THREAD_MIN_PRIORITY;
   self->messages_head = self->messages_tail = NULL;
+  self->state.cp0_status = 0x2;
+
+  __asm__ __volatile__("" ::: "memory");
   return self;
 }
 

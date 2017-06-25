@@ -142,9 +142,10 @@ libn64_thread_exit:
 libn64_syscall_thread_exit:
   lui $k0, 0x8000
   lw $k0, 0x420($k0)
-  sw $ra, 0x4($k0)
-  jal libn64_exception_handler_dequeue_thread
   mtc0 $k1, $14
+  lw $at, 0x8($k0)
+  jal libn64_exception_handler_dequeue_thread
+  sw $zero, 0x80($at)
   j libn64_context_restore
   lw $k1, 0x8($k0)
 
