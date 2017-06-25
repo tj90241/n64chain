@@ -80,11 +80,13 @@ libn64_syscall_thread_queue_new_thread:
   jal libn64_exception_handler_queue_thread
   sw $at, 0x19C($v0)
 
-# Restore destroyed variables and return.
+# Put thread ref in $v0, restore destroyed variables and return.
+  lw $k1, 0x8($k0)
   lw $a0, 0x010($v0)
   lw $a1, 0x01C($v0)
   lw $a2, 0x014($v0)
   lw $a3, 0x018($v0)
+  sw $k1, 0x4($v0)
   eret
 
 # The running thread has a lower/equal priority than the new thread.
@@ -99,19 +101,19 @@ libn64_syscall_thread_create_start_new_thread:
 libn64_syscall_thread_create_start_new_thread_continue:
   lw $k1, 0x4($k0)
   jal libn64_exception_handler_queue_thread
-  addu $v0, $k1, $zero
+  lw $v0, 0x8($k0)
 
 # Set the new thread's status/coprocessor status, ASID, and stack/$gp.
-  lw $a1, 0x010($v0)
-  lw $a0, 0x01C($v0)
-
 libn64_syscall_thread_create_start_new:
+  lw $k1, 0x8($k0)
+  lw $a1, 0x010($k1)
+  lw $a0, 0x01C($k1)
   mtc0 $a1, $14
 
 # TODO: Enable interrupts once a handler for the RCP is in place.
   addiu $at, $zero, 0x400
   mtc0 $at, $12
-  srl $at, $v0, 0x9
+  srl $at, $k1, 0x9
   andi $at, $at, 0xFF
   mtc0 $at, $10
   lui $sp, 0x8000
