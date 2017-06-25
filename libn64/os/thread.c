@@ -36,11 +36,12 @@ libn64_thread libn64_thread_early_init(uint32_t kernel_sp) {
   for (i = 0; i < LIBN64_THREADS_MAX; i++)
     thread_table->free_list[i] = thread_block + i;
 
-  thread_table->free_threads = LIBN64_THREADS_MAX - 1;
+  unsigned free_threads = LIBN64_THREADS_MAX - 1;
+  thread_table->free_thread_offset_in_bytes = free_threads << 2;
 
   // Initialize the ready thread queue and initial thread.
-  self = thread_block + thread_table->free_threads;
-  thread_table->ready_queue.count = 1;
+  self = thread_block + free_threads;
+  thread_table->ready_queue.tail_offset_in_bytes = 1 << 3;
 
   thread_table->ready_queue.heap[0].priority = LIBN64_THREAD_MIN_PRIORITY;
   thread_table->ready_queue.heap[0].thread = self;

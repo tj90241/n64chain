@@ -22,7 +22,7 @@ struct libn64_thread_queue_entry {
 // Metadata for the queue is kept in the first 8 bytes.
 // The root of the tree also sits in the same cache line.
 struct libn64_thread_queue {
-  uint32_t count;
+  uint32_t tail_offset_in_bytes;
 
   // This field is volatile/reserved for use by the ISR.
   uint32_t isr_temp;

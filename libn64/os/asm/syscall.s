@@ -34,10 +34,9 @@ libn64_syscall_thread_create:
 
 # Grab the next available thread from the free thread list.
   lw $k1, THREAD_FREE_COUNT($k0)
-  addiu $k1, $k1, -0x1
+  addiu $k1, $k1, -0x4
   sw $k1, THREAD_FREE_COUNT($k0)
 
-  sll $k1, $k1, 0x2
   addu $k1, $k1, $k0
   lw $v0, THREAD_FREE_LIST($k1)
 

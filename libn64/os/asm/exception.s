@@ -402,11 +402,10 @@ libn64_exception_handler_dequeue_thread:
 # Take the value of count /before/ decrementing it.
   lw $a0, ($k0)
   lw $k1, 0x8($k0)
-  addiu $a1, $a0, -0x1
+  addiu $a1, $a0, -0x8
   sw $a1, ($k0)
 
 # Promote the last thing in the heap to the front.
-  sll $a0, $a0, 0x3
   addu $a1, $a0, $k0
   ld $a2, ($a1)
   addiu $a1, $zero, 0x8
@@ -473,12 +472,11 @@ libn64_exception_handler_queue_thread:
 # Increment the thread queue count, write it back.
   lw $a0, ($k0)
   lw $at, 0x198($k1)
-  addiu $a0, $a0, 0x1
+  addiu $a0, $a0, 0x8
   sw $a0, ($k0)
 
 # Construct a new entry within the thread queue (index = $a0).
 # Branch to the while loop condition check (count > 1 check).
-  sll $a0, $a0, 0x3
   addu $a1, $a0, $k0
   sw $k1, 0x0($a1)
   j libn64_exception_handler_queue_thread_loop_check
