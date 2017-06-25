@@ -17,9 +17,6 @@
 
 # -------------------------------------------------------------------
 #  Blocks the active thread, places the next ready one on the CPU.
-#  When libn64_unblock_thread is called on the thread blocked by this
-#  function, the blocked thread resumes execution at ErrorEPC + 0x4.
-#
 #  Intended to be invoked as the the return of a libn64_context_save.
 # -------------------------------------------------------------------
 .global libn64_block_thread
@@ -31,9 +28,8 @@ libn64_block_thread:
   ori $at, $at, 0x4
 
 # Mark the thread blocked and dequeue it.
-  sw $ra, 0x4($k0)
   jal libn64_exception_handler_dequeue_thread
-  sw $at, 0x80($k0)
+  sw $at, 0x80($k1)
 
 # Switch to the next active thread.
   j libn64_context_restore
@@ -42,18 +38,53 @@ libn64_block_thread:
 .size libn64_block_thread,.-libn64_block_thread
 
 # -------------------------------------------------------------------
-#  Queues a new (higher priority) thread and context switches to it.
-#  See the above function as to how this function should be used.
-#
-#  Intended to be invoked as the the return of a libn64_context_save.
+#  Queues a previously blocked thread and switches to it if necessary.
 # -------------------------------------------------------------------
-.global libn64_unblock_hp_thread
-.type libn64_unblock_hp_thread, @function
+.global libn64_maybe_unblock_thread
+.type libn64_maybe_unblock_thread, @function
 .align 5
+libn64_maybe_unblock_thread:
+  lw $k0, 0x80($a0)
+  lw $at, 0x198($k1)
+  andi $k0, $k0, 0x4
+  bnel $k0, $zero, libn64_unblock_thread
+  lw $k0, 0x198($a0)
+  eret
+
+libn64_unblock_thread:
+  subu $at, $at, $k0
+  la $k0, libn64_unblock_hp_thread
+  bltzl $at, libn64_context_save #sw $ra, 0x4($at)
+  nop
+
+# Unblock a lower priority thread.
+libn64_unblock_lp_thread:
+  lui $at, 0x8000
+  cache 0xD, 0x400($at)
+  lw $k0, 0x420($at)
+  sw $a0, 0x400($at)
+  sw $a1, 0x400($at)
+  sw $a2, 0x400($at)
+  sw $a3, 0x400($at)
+
+  sw $ra, 0x4($k0)
+  jal libn64_exception_handler_queue_thread
+  addu $k1, $a0, $zero
+
+  lui $at, 0x8000
+  lw $a0, 0x400($at)
+  lw $a1, 0x400($at)
+  lw $a2, 0x400($at)
+  lw $a3, 0x400($at)
+  # cache invalidate
+  eret
+
+# Unblock a higher priority thread.
 libn64_unblock_hp_thread:
+  lui $k0, 0x8000
+  lw $k0, 0x420($k0)
 
 # Mark the thread unblocked and queue it.
-  sw $ra, 0x4($k0)
   jal libn64_exception_handler_queue_thread
   addu $k1, $a0, $zero
 
@@ -61,7 +92,7 @@ libn64_unblock_hp_thread:
   j libn64_context_restore
   lw $k1, 0x8($k0)
 
-.size libn64_unblock_hp_thread,.-libn64_unblock_hp_thread
+.size libn64_maybe_unblock_thread,.-libn64_maybe_unblock_thread
 
 # -------------------------------------------------------------------
 #  Loads the context from the thread pointed to by $k1. After the context is

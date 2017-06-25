@@ -17,7 +17,6 @@
 
 # -------------------------------------------------------------------
 #  Sends a message ($a1/message, $a2/data) to a thread ($a0).
-#  Caution: some code depends on $at = 0x8000_0000 at exit.
 # -------------------------------------------------------------------
 .global libn64_send_message
 .type libn64_send_message, @function

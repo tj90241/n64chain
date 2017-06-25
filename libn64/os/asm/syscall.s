@@ -206,18 +206,11 @@ libn64_syscall_send_message:
   mtc0 $k1, $14
 
 # Check to see if we unblocked a higher priority thread.
+  lui $at, 0x8000
   lw $at, 0x420($at)
   mfc0 $ra, $30
-  lw $at, 0x8($at)
-
-  lw $k1, 0x198($a0)
-  lw $k0, 0x198($at)
-  subu $k1, $k1, $k0
-
-  la $k0, libn64_unblock_hp_thread
-  bgtz $k1, libn64_context_save
-  addu $k1, $at, $zero
-  eret
+  j libn64_maybe_unblock_thread
+  lw $k1, 0x8($at)
 
 .size libn64_syscall_send_message,.-libn64_syscall_send_message
 
@@ -237,7 +230,7 @@ libn64_syscall_recv_message:
 # If there are no messages available, block the thread.
 libn64_recv_message_block:
   bnel $at, $zero, libn64_recv_message_deque
-  lw $at, 0x0($at)
+  lw $k0, 0x0($at)
 
 # No messages are available; set the thread's unblock return
 # to this syscall, deque it, and schedule the next thread.
@@ -246,25 +239,26 @@ libn64_recv_message_block:
   j libn64_context_save
   mtc0 $at, $30
 
-# Deque the message k0 the head/front of the message queue.
+# Deque the message at the head/front of the message queue.
 # If the message has a successor, make it the new queue head.
 # If there is no successor, then there is no tail; update it.
 libn64_recv_message_deque:
-  sw $at, 0x190($k1)
-  bnel $at, $zero, libn64_recv_message_after_next_update
-  sw $zero, 0x4($at)
+  sw $k0, 0x190($k1)
+  bnel $k0, $zero, libn64_recv_message_after_next_update
+  sw $zero, 0x4($k0)
   sw $zero, 0x194($k1)
 
 # Return the freed message to the message cache.
 # Return the contents of the message to the caller.
 libn64_recv_message_after_next_update:
   lui $k1, 0x8000
-  lw $at, 0x424($k1)
+  lw $k0, 0x424($k1)
 
-  lw $v0, 0x8($k0)
-  lw $v1, 0xC($k0)
-  sw $at, 0x0($k0)
+  lw $v0, 0x8($at)
+  lw $v1, 0xC($at)
+  sw $k0, 0x0($at)
   sw $k0, 0x424($k1)
+
   eret
 
 .size libn64_syscall_recv_message,.-libn64_syscall_recv_message
