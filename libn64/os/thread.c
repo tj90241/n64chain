@@ -25,11 +25,17 @@ libn64_thread libn64_thread_early_init(uint32_t kernel_sp) {
   struct libn64_thread_internal *thread_block =
     (struct libn64_thread_internal*) (kernel_sp + LIBN64_THREADS_MAX * 0x10);
 
-  // Invalidate the thread message cache.
+  // Invalidate the thread message cache and interrupt chains.
   __asm__(
     ".set noat\n\t"
+    ".set gp=64\n\t"
     "lui $at, 0x8000\n\t"
     "sw $zero, 0x424($at)\n\t"
+    "sd $zero, 0x430($at)\n\t"
+    "sd $zero, 0x438($at)\n\t"
+    "sd $zero, 0x440($at)\n\t"
+    ".set gp=default\n\t"
+    ".set at\n\t"
   );
 
   // Initialize the thread stack.
@@ -48,9 +54,16 @@ libn64_thread libn64_thread_early_init(uint32_t kernel_sp) {
 
   self->priority = LIBN64_THREAD_MIN_PRIORITY;
   self->messages_head = self->messages_tail = NULL;
-  self->state.cp0_status = 0x2;
+  self->state.mi_intr_reg = 0x595;
 
-  __asm__ __volatile__("" ::: "memory");
+  __asm__ __volatile__(
+    ".set noat\n\t"
+    "addiu $at, $zero, 0x401\n\t"
+    "mtc0 $at, $12\n\t"
+
+    ::: "memory"
+  );
+
   return self;
 }
 

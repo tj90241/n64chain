@@ -105,12 +105,11 @@ libn64_syscall_thread_create_start_new_thread_continue:
 # Set the new thread's status/coprocessor status, ASID, and stack/$gp.
 libn64_syscall_thread_create_start_new:
   lw $k1, 0x8($k0)
-  lw $a1, 0x010($k1)
-  lw $a0, 0x01C($k1)
+  lw $a1, 0x010($k1) # TODO: check offs
+  lw $a0, 0x01C($k1) # TODO: check offs
   mtc0 $a1, $14
 
-# TODO: Enable interrupts once a handler for the RCP is in place.
-  addiu $at, $zero, 0x400
+  addiu $at, $zero, 0x403
   mtc0 $at, $12
   srl $at, $k1, 0x9
   andi $at, $at, 0xFF
@@ -118,12 +117,14 @@ libn64_syscall_thread_create_start_new:
   lui $sp, 0x8000
   la $gp, _gp
 
-# By default, don't listen for any RCP interrupts.
+# By default, listen for any and all RCP interrupts.
   lui $at, 0xA430
-  sw $zero, 0xC($at)
+  addiu $k0, $zero, 0x595
+  sw $k0, 0xC($at)
 
 # If the thread returns, route it to libn64_thread_exit.
   la $ra, libn64_thread_exit
+  sw $k0, 0x08C($k1)
   eret
 
 libn64_thread_exit:
@@ -142,13 +143,60 @@ libn64_syscall_thread_exit:
   lui $k0, 0x8000
   lw $k0, 0x420($k0)
   mtc0 $k1, $14
-  lw $at, 0x8($k0)
+  lw $k1, 0x8($k0)
   jal libn64_exception_handler_dequeue_thread
-  sw $zero, 0x80($at)
+  sw $zero, 0x80($k1)
   j libn64_context_restore
   lw $k1, 0x8($k0)
 
 .size libn64_syscall_thread_exit,.-libn64_syscall_thread_exit
+
+# -------------------------------------------------------------------
+#  libn64::thread_reg_intr
+#    $a0 = thread
+#    $a1 = interrupt
+# -------------------------------------------------------------------
+.type libn64_syscall_thread_reg_intr, @function
+.align 5
+libn64_syscall_thread_reg_intr:
+  lui $k0, 0x8000
+  mtc0 $k1, $14
+  addu $k1, $k0, $a1
+  lw $k0, 0x0($k1)
+  sw $a0, 0x0($k1)
+  addu $k1, $a0, $a1
+  sw $k0, (0x1A0-0x430)($k1)
+  eret
+
+.size libn64_syscall_thread_reg_intr, .-libn64_syscall_thread_reg_intr
+
+# -------------------------------------------------------------------
+#  libn64::thread_self
+# -------------------------------------------------------------------
+.type libn64_syscall_thread_self, @function
+.align 5
+
+libn64_syscall_thread_self:
+  lui $k0, 0x8000
+  mtc0 $k1, $14
+  lw $k0, 0x420($k0)
+  lw $v0, 0x8($k0)
+  eret
+
+.size libn64_syscall_thread_self, .-libn64_syscall_thread_self
+
+# -------------------------------------------------------------------
+#  libn64::thread_unreg_intr
+#    $a0 = thread
+#    $a1 = interrupt
+# -------------------------------------------------------------------
+.type libn64_syscall_thread_unreg_intr, @function
+.align 5
+libn64_syscall_thread_unreg_intr:
+  mtc0 $k1, $14
+  eret
+
+.size libn64_syscall_thread_unreg_intr, .-libn64_syscall_thread_unreg_intr
 
 # -------------------------------------------------------------------
 #  libn64::page_alloc
@@ -261,8 +309,8 @@ libn64_recv_message_after_next_update:
   lw $k0, 0x424($k1)
 
   lw $v0, 0x8($at)
-  lw $v1, 0xC($at)
   sw $k0, 0x0($at)
+  lw $at, 0xC($at)
   sw $k0, 0x424($k1)
 
   eret
@@ -280,6 +328,9 @@ libn64_recv_message_after_next_update:
 libn64_syscall_table:
 .long libn64_syscall_thread_create
 .long libn64_syscall_thread_exit
+.long libn64_syscall_thread_reg_intr
+.long libn64_syscall_thread_self
+.long libn64_syscall_thread_unreg_intr
 .long libn64_syscall_page_alloc
 .long libn64_syscall_page_free
 .long libn64_syscall_send_message

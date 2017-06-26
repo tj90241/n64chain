@@ -33,10 +33,16 @@ struct libn64_thread_internal {
 
   struct message *messages_head;
   struct message *messages_tail;
-  uint32_t priority, blocked_call;
+  uint32_t priority;
+  uint32_t blocked;
 
+  void *ai_intr_chain;
+  void *dp_intr_chain;
+  void *pi_intr_chain;
+  void *sp_intr_chain;
+  void *si_intr_chain;
+  void *vi_intr_chain;
   uint32_t count[2];
-  uint32_t unused[6];
 
   uint16_t stack_pte[32];
 };

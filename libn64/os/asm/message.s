@@ -73,6 +73,85 @@ libn64_send_message_alloc_loop:
 
 .size libn64_send_message,.-libn64_send_message
 
+# -------------------------------------------------------------------
+#  Blasts messages out on behalf of the RCP (interrupts).
+# -------------------------------------------------------------------
+.global libn64_send_rcp_messages
+.type libn64_send_rcp_messages, @function
+.align 5
+libn64_send_rcp_messages:
+  sw $a3, 0x448($k0) # TODO save a3
+  lw $k1, 0x420($k0)
+  lw $k1, 0x8($k1)
+  sw $k1, 0x44C($k0) # TODO save current thread
+
+libn64_send_rcp_messages_again:
+  lui $k1, 0xA430
+  lw $a2, 0x8($k1)
+  lui $at, 0x8000
+
+# Check for RCP interrupts, send messages as needed.
+libn64_send_rcp_messages_check_vi:
+  andi $k1, $a2, 0x8
+  lui $k0, 0xA440
+  bnel $k1, $zero, libn64_send_vi_messages
+  sw $zero, 0x10($k0)
+
+libn64_send_rcp_messages_end:
+  lui $k0, 0x8000
+  lw $a0, 0x400($k0)
+  lw $a1, 0x404($k0)
+  lw $a2, 0x408($k0)
+  lw $a3, 0x448($k0) # TODO load a3
+  lw $at, 0x40C($k0)
+  mfc0 $ra, $30
+
+# Reschedule the active thread as needed.
+  lw $k1, 0x44C($k0)
+  la $k0, libn64_send_rcp_messages_eret
+  j libn64_context_save
+  nop
+
+libn64_send_rcp_messages_eret:
+  j libn64_context_restore
+  lw $k1, 0x8($k0)
+
+# Messages have been sent out: unblock threads as needed.
+.align 5
+libn64_unblock_threads:
+  lw $k0, 0x420($at)
+
+libn64_unblock_threads_next:
+  beq $ra, $zero, libn64_send_rcp_messages_again
+  sw $ra, 0x4($k0)
+
+  lw $at, 0x80($ra)
+  andi $at, $at, 0x4
+  beql $at, $zero, libn64_unblock_threads_next
+  lw $ra, 0x1B4($ra)
+
+  jal libn64_exception_handler_queue_thread
+  lw $k1, 0x4($k0)
+  j libn64_unblock_threads_next
+  lw $ra, 0x1B4($ra)
+
+# Send a message to everyone watching VI interrupts.
+.align 5
+libn64_send_vi_messages:
+  lw $a0, 0x444($at)
+  xor $a2, $a2, $a2
+
+libn64_send_vi_messages_next:
+  beql $a0, $zero, libn64_unblock_threads
+  lw $ra, 0x444($at)
+
+  jal libn64_send_message
+  ori $a1, $at, 0x6
+  j libn64_send_vi_messages_next
+  lw $a0, 0x1B4($a0)
+
+.size libn64_send_rcp_messages,.-libn64_send_rcp_messages
+
 .set gp=default
 .set fp=default
 .set at

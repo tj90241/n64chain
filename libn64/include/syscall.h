@@ -12,17 +12,24 @@
 #define LIBN64_INCLUDE_OS_SYSCALL_H
 
 // Syscall numbers.
-#define LIBN64_SYSCALL_CREATE_THREAD 0
-#define LIBN64_SYSCALL_EXIT_THREAD   1
-#define LIBN64_SYSCALL_PAGE_ALLOC    2
-#define LIBN64_SYSCALL_PAGE_FREE     3
+#define LIBN64_SYSCALL_THREAD_CREATE     0
+#define LIBN64_SYSCALL_THREAD_EXIT       1
+#define LIBN64_SYSCALL_THREAD_REG_INTR   2
+#define LIBN64_SYSCALL_THREAD_SELF       3
+#define LIBn64_SYSCALL_THREAD_UNREG_INTR 4
+#define LIBN64_SYSCALL_PAGE_ALLOC        5
+#define LIBN64_SYSCALL_PAGE_FREE         6
 
-#define LIBN64_SYSCALL_SEND_MESSAGE  4
-#define LIBN64_SYSCALL_RECV_MESSAGE  5
-#define LIBN64_SYSCALL_INVALID       6
+#define LIBN64_SYSCALL_SEND_MESSAGE      7
+#define LIBN64_SYSCALL_RECV_MESSAGE      8
+#define LIBN64_SYSCALL_INVALID           9
 
 #ifndef __ASSEMBLER__
 #include <stdint.h>
+
+enum libn64_interrupt {
+  LIBN64_INTERRUPT_VI = 0x444,
+};
 
 // Spawns a new thread with a given priority (which receives arg). If
 // the new thread has a higher priority than the current thread, a
@@ -48,7 +55,7 @@ static inline libn64_thread libn64_thread_create(
     ".set at\n\t"
 
     : "=r" (rv)
-    : "r" (a0), "r" (a1), "r" (a2), "K" (LIBN64_SYSCALL_CREATE_THREAD)
+    : "r" (a0), "r" (a1), "r" (a2), "K" (LIBN64_SYSCALL_THREAD_CREATE)
     : "memory"
   );
 
@@ -66,11 +73,48 @@ static inline void libn64_thread_exit(void) {
     ".set reorder\n\t"
     ".set at\n\t"
 
-    :: "K" (LIBN64_SYSCALL_EXIT_THREAD)
+    :: "K" (LIBN64_SYSCALL_THREAD_EXIT)
     : "memory"
   );
 
   __builtin_unreachable();
+}
+
+// Returns the libn64_thread corresponding to the currently running thread.
+libn64func __attribute__((always_inline))
+static inline libn64_thread libn64_thread_self(void) {
+  register libn64_thread v0 __asm__("$v0");
+
+  __asm__ __volatile__(
+    ".set noreorder\n\t"
+    ".set noat\n\t"
+    "li $at, %1\n\t"
+    "syscall\n\t"
+
+    : "=r"(v0)
+    : "K"(LIBN64_SYSCALL_THREAD_SELF)
+  );
+
+  return v0;
+}
+
+// Registers the thread to receive messages on interrupts.
+libn64func __attribute__((always_inline))
+static inline void libn64_thread_reg_intr(libn64_thread thread,
+    enum libn64_interrupt interrupt) {
+  register libn64_thread a0 __asm__("$a0") = thread;
+  register enum libn64_interrupt a1 __asm__("$a1") = interrupt;
+
+  __asm__ __volatile__(
+    ".set noreorder\n\t"
+    ".set noat\n\t"
+    "li $at, %2\n\t"
+    "syscall\n\t"
+    ".set reorder\n\t"
+    ".set at\n\t"
+
+    :: "r"(a0), "r"(a1),  "K"(LIBN64_SYSCALL_THREAD_REG_INTR)
+  );
 }
 
 // Allocates a page (4kB) of memory. If there are no available/free pages in
@@ -178,9 +222,9 @@ static inline uint32_t libn64_recv_message(void) {
 
 // Blocks until a message is received; returns message and ata.
 libn64func __attribute__((always_inline))
-static inline uint32_t libn64_recv_message1(uint32_t *param) {
+static inline uint64_t libn64_recv_message1(uint32_t *param) {
   register uint32_t rv __asm__("$v0");
-  register uint32_t data __asm__("$v1");
+  register uint32_t data __asm__("$at");
 
   __asm__ __volatile__(
     ".set noreorder\n\t"

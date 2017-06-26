@@ -63,9 +63,9 @@ libn64_unblock_lp_thread:
   cache 0xD, 0x400($at)
   lw $k0, 0x420($at)
   sw $a0, 0x400($at)
-  sw $a1, 0x400($at)
-  sw $a2, 0x400($at)
-  sw $a3, 0x400($at)
+  sw $a1, 0x404($at)
+  sw $a2, 0x408($at)
+  sw $a3, 0x40C($at)
 
   sw $ra, 0x4($k0)
   jal libn64_exception_handler_queue_thread
@@ -73,9 +73,9 @@ libn64_unblock_lp_thread:
 
   lui $at, 0x8000
   lw $a0, 0x400($at)
-  lw $a1, 0x400($at)
-  lw $a2, 0x400($at)
-  lw $a3, 0x400($at)
+  lw $a1, 0x404($at)
+  lw $a2, 0x408($at)
+  lw $a3, 0x40C($at)
   # cache invalidate
   eret
 
@@ -253,10 +253,8 @@ libn64_context_save_loop:
   sw $t6, 0x034($k1)
   sw $t7, 0x038($k1)
   sw $at, 0x080($k1)
-  lui $v1, 0xA430
-  sw $s0, 0x03C($k1)
   mfc0 $v0, $30
-  lw $v1, 0x00C($v1)
+  sw $s0, 0x03C($k1)
   sw $s1, 0x040($k1)
   sw $v0, 0x19C($k1)
   sw $s2, 0x044($k1)
@@ -268,16 +266,15 @@ libn64_context_save_loop:
   sw $t8, 0x05C($k1)
   sw $t9, 0x060($k1)
   sw $gp, 0x064($k1)
-  sw $sp, 0x068($k1)
   mfc0 $v0, $14
-  sw $fp, 0x06C($k1)
+  sw $sp, 0x068($k1)
   sw $v0, 0x07C($k1)
   mfc0 $v0, $10
+  sw $fp, 0x06C($k1)
   sw $v0, 0x084($k1)
   sll $v0, $at, 0x2
-  sw $ra, 0x070($k1)
   bltz $v0, libn64_context_save_fpu
-  sw $v1, 0x08C($k1)
+  sw $ra, 0x070($k1)
 
 libn64_context_save_done:
   lui $at, 0x8000

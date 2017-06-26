@@ -12,6 +12,7 @@
 #include <rcp/vi.h>
 #include <stdint.h>
 #include <syscall.h>
+#include <vr4300/cp0.h>
 
 // These pre-defined values are suitable for NTSC.
 // TODO: Add support for PAL and PAL-M televisions.
@@ -38,7 +39,6 @@ struct libn64_fbtext_context fbtext;
 unsigned threads_spawned;
 
 void thread_main(void *arg __attribute__((unused))) {
-  libn64_recv_message();
   unsigned my_prio;
 
   my_prio = (++threads_spawned);
@@ -73,6 +73,20 @@ void main(void *unused __attribute__((unused))) {
   libn64_thread child = libn64_thread_create(thread_main, &fbtext, 3);
   libn64_send_message(child, 2);
 
-  libn64_fbtext_puts(&fbtext, "Idle thread!\n");
+  libn64_fbtext_puts(&fbtext, "VI intrs=");
+
+  // Deliver interrupt messages to this thread's message queue.
+  libn64_thread_reg_intr(libn64_thread_self(), LIBN64_INTERRUPT_VI);
+
+  // Display a '.' once per second, 20 times.
+  for (i = 0; i < 20; i++) {
+    libn64_fbtext_puts(&fbtext, ".");
+
+    // Catch 60 VI interrupts (i.e., wait 1 sec)
+    unsigned j;
+    for (j=0; j<60; j++) {
+      libn64_recv_message();
+    }
+  }
 }
 

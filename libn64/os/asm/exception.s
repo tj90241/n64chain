@@ -293,28 +293,16 @@ libn64_exception_handler_break:
 .align 5
 libn64_exception_handler_interrupt:
   andi $k1, $k0, 0x0400
-  bne $k1, $zero, libn64_exception_handler_interrupt_infrequent
-  lui $k1, 0xA430
-
-# Handle a RCP interrupt:
-libn64__exception_handler_rcp_interrupt:
-  lw $k0, 0x8($k1)
-  eret
-
-# Handle infrequent interrupts (64DD, timer, and other unhandled interrupts)
-.align 5
-libn64_exception_handler_interrupt_infrequent:
+  bne $k1, $zero, libn64_exception_handler_rcp_interrupt
   andi $k1, $k0, 0x8000
-  beq $k1, $zero, libn64_exception_handler_timer_interrupt
+  bne $k1, $zero, libn64_exception_handler_timer_interrupt
   andi $k1, $k0, 0x0800
-  beql $k1, $zero, libn64_exception_handler_64dd_interrupt
-  lui $k0, 0xA500
+  beql $k1, $zero, libn64_panic
+  addu $k0, $zero, $zero
 
 # We got an unexpected interrupt. Since we don't know how to handle it, panic.
 # Currently, this will happen for software interrupts and the Indy debugger-
 # reserved external interrupts.
-#
-# In the future, when 64DD is supported, we should move this label elsewhere.
 libn64_exception_handler_64dd_interrupt:
   j libn64_panic
   addu $k0, $zero, $zero
@@ -322,11 +310,22 @@ libn64_exception_handler_64dd_interrupt:
 # A timer interrupt occurred. Bounce the compare register to silence it.
 # In the future, we probably want to pump a message out on a message queue
 # or something here to acknowledge that a timer interrupt occurred.
-.align 5
 libn64_exception_handler_timer_interrupt:
   mfc1 $k1, $11
   mtc1 $k1, $11
   eret
+
+# Handle a RCP interrupt: pump messages out to the listeners.
+.align 5
+libn64_exception_handler_rcp_interrupt:
+  lui $k0, 0x8000
+  cache 0xD, 0x400($k0)
+  sw $a0, 0x400($k0)
+  mtc0 $ra, $30
+  sw $a1, 0x404($k0)
+  sw $a2, 0x408($k0)
+  j libn64_send_rcp_messages
+  sw $at, 0x40C($k0)
 
 .size libn64_exception_handler,.-libn64_exception_handler
 
