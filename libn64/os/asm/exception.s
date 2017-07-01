@@ -461,7 +461,7 @@ libn64_exception_handler_dequeue_thread_finish:
 #  Routine fits in 3 cache lines. The only stalling that should occur
 #  is for data accesses that miss the cache, which is unavoidable.
 #
-#  Clobbers: $k1, $a0-$a3
+#  Clobbers: $k1, $a0-$a2
 # -------------------------------------------------------------------
 .global libn64_exception_handler_queue_thread
 .type libn64_exception_handler_queue_thread, @function
@@ -489,18 +489,18 @@ libn64_exception_handler_queue_thread:
 #   $a0 = pos << 3, swap address for pos
 #   $a1 = parent << 3
 #   $a2 = swap address for parent
-#   $a3 = priority check, parent contents
-#   $k1 = scratch
+#   $k1 = priority check, parent contents
 libn64_exception_handler_queue_thread_loop:
   addu $a2, $a1, $k0
-  lw $a3, 0x4($a2)
+  lw $k1, 0x4($a2)
   addu $a0, $a0, $k0
-  subu $a3, $a3, $at
-  bgez $a3, libn64_exception_handler_queue_thread_finish
-  ld $a3, ($a2)
+  subu $k1, $k1, $at
+  bgez $k1, libn64_exception_handler_queue_thread_finish
+  ld $a2, ($a2)
   ld $k1, ($a0)
-  sd $a3, ($a0)
+  sd $a2, ($a0)
   addu $a0, $a1, $zero
+  addu $a2, $a1, $k0
   sd $k1, ($a2)
 
 libn64_exception_handler_queue_thread_loop_check:

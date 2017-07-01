@@ -80,12 +80,6 @@ libn64_send_message_alloc_loop:
 .type libn64_send_rcp_messages, @function
 .align 5
 libn64_send_rcp_messages:
-  sw $a3, 0x448($k0) # TODO save a3
-  lw $k1, 0x420($k0)
-  lw $k1, 0x8($k1)
-  sw $k1, 0x44C($k0) # TODO save current thread
-
-libn64_send_rcp_messages_again:
   lui $k1, 0xA430
   lw $a2, 0x8($k1)
   lui $at, 0x8000
@@ -102,53 +96,61 @@ libn64_send_rcp_messages_end:
   lw $a0, 0x400($k0)
   lw $a1, 0x404($k0)
   lw $a2, 0x408($k0)
-  lw $a3, 0x448($k0) # TODO load a3
   lw $at, 0x40C($k0)
-  mfc0 $ra, $30
+  cache 0x11, 0x400($k0)
 
 # Reschedule the active thread as needed.
-  lw $k1, 0x44C($k0)
-  la $k0, libn64_send_rcp_messages_eret
-  j libn64_context_save
-  nop
+  lw $k0, 0x420($k0)
+  mfc0 $k1, $10
+  lw $k0, 0x8($k0)
 
+  andi $k1, $k1, 0xFF
+  srl $k0, $k0, 0x9
+  andi $ra, $k0, 0xFF
+
+  beq $ra, $k1, libn64_send_rcp_messages_eret
+  xor $k0, $k0, $ra
+  or $k1, $k0, $k1
+  sll $k1, $k1, 0x9
+
+  la $k0, libn64_send_rcp_messages_restore
+  j libn64_context_save
 libn64_send_rcp_messages_eret:
+  mfc0 $ra, $30
+  eret
+
+libn64_send_rcp_messages_restore:
   j libn64_context_restore
   lw $k1, 0x8($k0)
-
-# Messages have been sent out: unblock threads as needed.
-.align 5
-libn64_unblock_threads:
-  lw $k0, 0x420($at)
-
-libn64_unblock_threads_next:
-  beq $ra, $zero, libn64_send_rcp_messages_again
-  sw $ra, 0x4($k0)
-
-  lw $at, 0x80($ra)
-  andi $at, $at, 0x4
-  beql $at, $zero, libn64_unblock_threads_next
-  lw $ra, 0x1B4($ra)
-
-  jal libn64_exception_handler_queue_thread
-  lw $k1, 0x4($k0)
-  j libn64_unblock_threads_next
-  lw $ra, 0x1B4($ra)
 
 # Send a message to everyone watching VI interrupts.
 .align 5
 libn64_send_vi_messages:
   lw $a0, 0x444($at)
-  xor $a2, $a2, $a2
 
 libn64_send_vi_messages_next:
-  beql $a0, $zero, libn64_unblock_threads
-  lw $ra, 0x444($at)
+  beq $a0, $zero, libn64_send_rcp_messages
 
+# Send a message out on behalf of the VI interrupt.
+  addiu $a1, $zero, -0x6
   jal libn64_send_message
-  ori $a1, $at, 0x6
+  lw $a2, 0x80($a0)
+
+# Test if the thread is blocked and needs to be queued.
+  addu $k1, $a0, $zero
+  andi $a1, $a2, 0x8000
+  beq $a1, $zero, libn64_send_vi_messages_next
+  lw $a0, 0x1B4($k1)
+
+# Thread is blocked; unblock it and continue.
+  xori $a1, $a2, 0x8000
+  lw $k0, 0x420($at)
+  sw $a1, 0x80($k1)
+  jal libn64_exception_handler_queue_thread
+  sw $a0, 0x4($k0)
+
   j libn64_send_vi_messages_next
-  lw $a0, 0x1B4($a0)
+  addu $a0, $ra, $zero
 
 .size libn64_send_rcp_messages,.-libn64_send_rcp_messages
 

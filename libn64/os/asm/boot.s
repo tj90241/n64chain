@@ -34,7 +34,7 @@ libn64_ipl:
   lw $at, 0x318($a2)
   addu $a2, $a2, $at
 
-# Reserve 0x210 bytes for each thread, setup a stack below that.
+# Reserve 0x200 bytes for each thread, setup a stack below that.
   li $v0, LIBN64_THREADS_MAX
   sll $v0, $v0, 0x5
   addiu $v0, $v0, LIBN64_THREADS_MAX

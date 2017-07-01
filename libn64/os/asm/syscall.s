@@ -24,6 +24,7 @@
 # -------------------------------------------------------------------
 .set THREAD_FREE_COUNT, ((LIBN64_THREADS_MAX + 1) * 0x8)
 .set THREAD_FREE_LIST, (THREAD_FREE_COUNT + 0x4)
+.set DEFAULT_MI_INTR_MASK, 0x595
 
 .type libn64_syscall_thread_create, @function
 .align 5
@@ -63,6 +64,8 @@ libn64_syscall_thread_create_invalidate_loop:
   sd $a0, 0x198($v0)
   subu $at, $at, $a2
   sd $zero, 0x190($v0)
+  addiu $k1, $zero, DEFAULT_MI_INTR_MASK
+  sw $k1, 0x08C($v0)
   bltz $at, libn64_syscall_thread_create_start_new_thread
   sw $a1, 0x01C($v0)
 
@@ -102,6 +105,11 @@ libn64_syscall_thread_create_start_new_thread_continue:
   jal libn64_exception_handler_queue_thread
   lw $v0, 0x8($k0)
 
+# Apply the RCP interrupt mask - we haven't done a context_load yet.
+  lui $at, 0xA430
+  addiu $k1, $zero, DEFAULT_MI_INTR_MASK
+  sw $k1, 0xC($at)
+
 # Set the new thread's status/coprocessor status, ASID, and stack/$gp.
 libn64_syscall_thread_create_start_new:
   lw $k1, 0x8($k0)
@@ -116,11 +124,6 @@ libn64_syscall_thread_create_start_new:
   mtc0 $at, $10
   lui $sp, 0x8000
   la $gp, _gp
-
-# By default, listen for any and all RCP interrupts.
-  lui $at, 0xA430
-  addiu $k0, $zero, 0x595
-  sw $k0, 0xC($at)
 
 # If the thread returns, route it to libn64_thread_exit.
   la $ra, libn64_thread_exit

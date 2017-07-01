@@ -56,12 +56,33 @@ libn64_thread libn64_thread_early_init(uint32_t kernel_sp) {
   self->messages_head = self->messages_tail = NULL;
   self->state.mi_intr_reg = 0x595;
 
+  // Flush the thread context to memory, load it back out.
+  // Moreover, enable interrupts when loading it back out.
   __asm__ __volatile__(
     ".set noat\n\t"
-    "addiu $at, $zero, 0x401\n\t"
-    "mtc0 $at, $12\n\t"
+    ".set noreorder\n\t"
+    "srl $at, %0, 0x9\n\t"
+    "andi $at, $at, 0xFF\n\t"
+    "mtc0 $at, $10\n\t"
 
-    ::: "memory"
+    "la $k0, 2f\n\t"
+    "mtc0 $k0, $14\n\t"
+    "la $k0, 1f\n\t"
+    "j libn64_context_save\n\t"
+    "addu $k1, %0, $zero\n\t"
+
+    "1:\n\t"
+    "addiu $at, $zero, 0x403\n\t"
+    "lw $k1, 0x8($k0)\n\t"
+    "j libn64_context_restore\n\t"
+    "sw $at, 0x80($k1)\n\t"
+
+    "2:\n\t"
+    ".set reorder\n\t"
+    ".set at\n\t"
+
+    :: "r"(self)
+    : "memory"
   );
 
   return self;

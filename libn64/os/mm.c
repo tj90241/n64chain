@@ -78,19 +78,21 @@ void libn64_mm_init(uint32_t physmem_bottom, uint32_t physmem_top) {
     "sw $zero, 0x42C($at)\n\t"
     ".set at\n\t"
     :: "r"(mm_page_list)
+    : "memory"
   );
 
   // Invalidate all the TLB entries.
-  __asm__ __volatile__("mtc0 $zero, $5\n\t"  // PageMask
-                       "mtc0 $zero, $10\n\t" // EntryHi
-                       "mtc0 $zero, $2\n\t"  // EntryLo0
-                       "mtc0 $zero, $3\n\t"  // EntryLo1
-                       "mtc0 $zero, $6\n\t"  // Wired
+  __asm__ __volatile__(
+    "mtc0 $zero, $5\n\t" // PageMask
+    "mtc0 $zero, $2\n\t" // EntryLo0
+    "mtc0 $zero, $3\n\t" // EntryLo1
+    "mtc0 $zero, $6\n\t" // Wired
   );
 
   for (i = 0; i < 32; i++) {
-    __asm__ __volatile__("mtc0 %0, $0\n\t"   // Index
-                         "tlbwi\n\t"
+    __asm__ __volatile__(
+      "mtc0 %0, $0\n\t" // Index
+      "tlbwi\n\t"
       :: "r" (i)
     );
   }

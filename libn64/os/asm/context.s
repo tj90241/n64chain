@@ -25,7 +25,7 @@
 libn64_block_thread:
   mfc0 $at, $12
   lw $k1, 0x8($k0)
-  ori $at, $at, 0x4
+  ori $at, $at, 0x8004
 
 # Mark the thread blocked and dequeue it.
   jal libn64_exception_handler_dequeue_thread
@@ -46,37 +46,37 @@ libn64_block_thread:
 libn64_maybe_unblock_thread:
   lw $k0, 0x80($a0)
   lw $at, 0x198($k1)
-  andi $k0, $k0, 0x4
-  bnel $k0, $zero, libn64_unblock_thread
-  lw $k0, 0x198($a0)
-  eret
+  andi $k1, $k0, 0x8000
+  beq $k1, $zero, libn64_unblock_eret
+  xori $k1, $k0, 0x8000
 
 libn64_unblock_thread:
+  lw $k0, 0x198($a0)
+  sw $k1, 0x80($a0)
   subu $at, $at, $k0
   la $k0, libn64_unblock_hp_thread
-  bltzl $at, libn64_context_save #sw $ra, 0x4($at)
-  nop
+  bltz $at, libn64_context_save
+  lui $at, 0x8000
 
 # Unblock a lower priority thread.
 libn64_unblock_lp_thread:
-  lui $at, 0x8000
   cache 0xD, 0x400($at)
   lw $k0, 0x420($at)
   sw $a0, 0x400($at)
   sw $a1, 0x404($at)
-  sw $a2, 0x408($at)
-  sw $a3, 0x40C($at)
+  addu $k1, $a0, $zero
 
   sw $ra, 0x4($k0)
   jal libn64_exception_handler_queue_thread
-  addu $k1, $a0, $zero
+  sw $a2, 0x408($at)
 
   lui $at, 0x8000
   lw $a0, 0x400($at)
   lw $a1, 0x404($at)
   lw $a2, 0x408($at)
-  lw $a3, 0x40C($at)
-  # cache invalidate
+  cache 0x11, 0x400($at)
+
+libn64_unblock_eret:
   eret
 
 # Unblock a higher priority thread.
@@ -278,9 +278,8 @@ libn64_context_save_loop:
 
 libn64_context_save_done:
   lui $at, 0x8000
-  lw $at, 0x420($at)
   jr $k0
-  addu $k0, $at, $zero
+  lw $k0, 0x420($at)
 
 libn64_context_save_fpu:
   addiu $v1, $k1, 0x70
