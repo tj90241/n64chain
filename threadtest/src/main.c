@@ -1,5 +1,5 @@
 //
-// fputest/src/main.c: FPU test cart (entry point).
+// threadtest/src/main.c: Threading test cart (entry point).
 //
 // n64chain: A (free) open-source N64 development toolchain.
 // Copyright 2014-16 Tyler J. Stachecki <stachecki.tyler@gmail.com>
@@ -34,59 +34,155 @@ static vi_state_t vi_state = {
 };
 
 struct libn64_fbtext_context fbtext;
+uint32_t fb_origin;
 
-// Higher priority thread.
-unsigned threads_spawned;
+// Flip to the next page, clear the framebuffer.
+void vi_thread(void *opaque) {
+  struct vi_state_t *vi_state = (struct vi_state_t *) opaque;
 
-void thread_main(void *arg __attribute__((unused))) {
-  unsigned my_prio;
+  while (1) {
+    unsigned i;
 
-  my_prio = (++threads_spawned);
+    // Point to VI to the last fb, swap the fbs.
+    vi_flush_state(vi_state);
+    vi_state->origin ^= 0x100000; // 1MB
 
-#if 1
-  if (threads_spawned < 14)
-    libn64_thread_create(thread_main, &fbtext, my_prio + 1);
-#endif
+    for (i = 0; i < 320 * 240 * 2; i += 16) {
+      __asm__ __volatile__(
+        ".set gp=64\n\t"
+        "cache 0xD, 0x0(%0)\n\t"
+        "sd $zero, 0x0(%0)\n\t"
+        "sd $zero, 0x8(%0)\n\t"
+        "cache 0x19, 0x0(%0)\n\t"
+        ".set gp=default\n\t"
 
-  libn64_fbtext_puts(&fbtext, "App thread! Prio=");
-  libn64_fbtext_putu32(&fbtext, my_prio - 1);
-  libn64_fbtext_puts(&fbtext, "\n");
+        :: "r" (0x80000000 | (vi_state->origin + i))
+        : "memory"
+      );
+    }
+
+    // Block until the next VI interrupt comes in.
+    libn64_recv_message();
+  }
+}
+
+struct box_anim_args {
+  struct vi_state_t *vi_state;
+  char init_x_dir, init_y_dir;
+  unsigned init_x, init_y;
+};
+
+void box_anim_thread(void *opaque) {
+  struct box_anim_args *args = (struct box_anim_args *) opaque;
+  struct vi_state_t *vi_state = args->vi_state;
+  unsigned cur_x = args->init_x;
+  unsigned cur_y = args->init_y;
+  char x_dir = args->init_x_dir;
+  char y_dir = args->init_y_dir;
+
+  libn64_recv_message();
+
+  while (1) {
+    // Draw the box (8x8).
+    unsigned i, j;
+
+    for (j = 0; j < 8; j++) {
+      for (i = 0; i < 8 * 2; i += 16) {
+        uint32_t offs = (cur_y + j) * 320 * 2 + cur_x * 2 +
+                        vi_state->origin;
+
+        __asm__ __volatile__(
+          ".set noat\n\t"
+          ".set gp=64\n\t"
+          "addiu $at, $zero, -0x1\n\t"
+          "sh $at, 0x0(%0)\n\t"
+          "sh $at, 0x2(%0)\n\t"
+          "sh $at, 0x4(%0)\n\t"
+          "sh $at, 0x6(%0)\n\t"
+          "sh $at, 0x8(%0)\n\t"
+          "sh $at, 0xA(%0)\n\t"
+          "sh $at, 0xC(%0)\n\t"
+          "sh $at, 0xE(%0)\n\t"
+          ".set gp=default\n\t"
+          ".set at\n\t"
+
+          :: "r" (0x80000000 | offs)
+          : "memory"
+        );
+      }
+    }
+
+    // Update the box's coordinates.
+    if (x_dir) { cur_x++; } else { cur_x--; }
+    if (y_dir) { cur_y++; } else { cur_y--; }
+
+    if (cur_x >= 300)
+      x_dir = 0;
+
+    else if (cur_x <= 20)
+      x_dir = 1;
+
+    if (cur_y >= 220)
+      y_dir = 0;
+
+    else if (cur_y <= 20)
+      y_dir = 1;
+
+    // Block until the next VI interrupt comes in.
+    libn64_recv_message();
+  }
 }
 
 // Application entry point.
+static struct box_anim_args args;
+
 void main(void *unused __attribute__((unused))) {
   unsigned i;
 
-  // Wipe FB to black.
-  volatile uint16_t *fb = (volatile uint16_t *) 0xA0200000;
+  // Spawn a very high-priority clear framebuffer thread.
+  libn64_thread vi_thr = libn64_thread_create(
+    vi_thread, &vi_state, 255);
 
-  for (i = 0; i < 320 * 240; i++)
-    *(fb + i) = 0;
+  libn64_thread_reg_intr(vi_thr, LIBN64_INTERRUPT_VI);
 
-  // Enable the VI.
-  vi_flush_state(&vi_state);
+  // Spawn a few medium-priority box animation threads.
+  for (i = 1; i < 12; i++) {
+    args.vi_state = &vi_state;
+    args.init_x_dir = i & 1;
+    args.init_y_dir = (i >> 1) & 1;
+    args.init_x = i * 25;
+    args.init_y = i * 15;
+
+    libn64_thread box_thr = libn64_thread_create(
+      box_anim_thread, &args, 2);
+
+    libn64_thread_reg_intr(box_thr, LIBN64_INTERRUPT_VI);
+  }
+
+  // Update the 'Running...' animation.
+  libn64_thread_reg_intr(libn64_thread_self(), LIBN64_INTERRUPT_VI);
 
   libn64_fbtext_init(&fbtext, 0x200000, LIBN64_FBTEXT_COLOR_WHITE,
       LIBN64_FBTEXT_COLOR_BLACK, 0x140, LIBN64_FBTEXT_16BPP);
 
-  threads_spawned = 1;
-  libn64_thread child = libn64_thread_create(thread_main, &fbtext, 3);
-  libn64_send_message(child, 2);
+  unsigned cur_frames = 1;
 
-  libn64_fbtext_puts(&fbtext, "VI intrs=");
+  while (1) {
+    fbtext.x = fbtext.y = 1;
+    fbtext.fb_origin = 0x80000000 | vi_state.origin;
+    libn64_fbtext_puts(&fbtext, " Running");
 
-  // Deliver interrupt messages to this thread's message queue.
-  libn64_thread_reg_intr(libn64_thread_self(), LIBN64_INTERRUPT_VI);
+    for (i = 0; i < cur_frames / 60 + 1; i++)
+      libn64_fbtext_puts(&fbtext, ".");
 
-  // Display a '.' once per second, 20 times.
-  for (i = 0; i < 20; i++) {
-    libn64_fbtext_puts(&fbtext, ".");
+    for (; i < 3; i++)
+      libn64_fbtext_puts(&fbtext, " ");
 
-    // Catch 60 VI interrupts (i.e., wait 1 sec)
-    unsigned j;
-    for (j=0; j<60; j++) {
-      libn64_recv_message();
-    }
+    cur_frames++;
+    if (cur_frames >= 240)
+      cur_frames = 1;
+
+    libn64_recv_message();
   }
 }
 
