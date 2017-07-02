@@ -313,8 +313,8 @@ libn64_recv_message_after_next_update:
 
   lw $v0, 0x8($at)
   sw $k0, 0x0($at)
+  sw $at, 0x424($k1)
   lw $at, 0xC($at)
-  sw $k0, 0x424($k1)
 
   eret
 
