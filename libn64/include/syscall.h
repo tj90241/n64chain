@@ -16,7 +16,7 @@
 #define LIBN64_SYSCALL_THREAD_EXIT       1
 #define LIBN64_SYSCALL_THREAD_REG_INTR   2
 #define LIBN64_SYSCALL_THREAD_SELF       3
-#define LIBn64_SYSCALL_THREAD_UNREG_INTR 4
+#define LIBN64_SYSCALL_THREAD_UNREG_INTR 4
 #define LIBN64_SYSCALL_PAGE_ALLOC        5
 #define LIBN64_SYSCALL_PAGE_FREE         6
 
@@ -28,6 +28,11 @@
 #include <stdint.h>
 
 enum libn64_interrupt {
+  LIBN64_INTERRUPT_AI = 0x430,
+  LIBN64_INTERRUPT_DP = 0x434,
+  LIBN64_INTERRUPT_PI = 0x438,
+  LIBN64_INTERRUPT_SP = 0x43C,
+  LIBN64_INTERRUPT_SI = 0x440,
   LIBN64_INTERRUPT_VI = 0x444,
 };
 
@@ -102,8 +107,8 @@ static inline libn64_thread libn64_thread_self(void) {
 libn64func __attribute__((always_inline))
 static inline void libn64_thread_reg_intr(libn64_thread thread,
     enum libn64_interrupt interrupt) {
-  register libn64_thread a0 __asm__("$a0") = thread;
-  register enum libn64_interrupt a1 __asm__("$a1") = interrupt;
+  register enum libn64_interrupt a1 __asm__("$a0") = interrupt;
+  register libn64_thread a0 __asm__("$a1") = thread;
 
   __asm__ __volatile__(
     ".set noreorder\n\t"
@@ -114,6 +119,25 @@ static inline void libn64_thread_reg_intr(libn64_thread thread,
     ".set at\n\t"
 
     :: "r"(a0), "r"(a1),  "K"(LIBN64_SYSCALL_THREAD_REG_INTR)
+  );
+}
+
+// Unregisters the thread (so it no longer recvs messages on interrupts).
+libn64func __attribute__((always_inline))
+static inline void libn64_thread_unreg_intr(libn64_thread thread,
+    enum libn64_interrupt interrupt) {
+  register enum libn64_interrupt a1 __asm__("$a0") = interrupt;
+  register libn64_thread a0 __asm__("$a1") = thread;
+
+  __asm__ __volatile__(
+    ".set noreorder\n\t"
+    ".set noat\n\t"
+    "li $at, %2\n\t"
+    "syscall\n\t"
+    ".set reorder\n\t"
+    ".set at\n\t"
+
+    :: "r"(a0), "r"(a1),  "K"(LIBN64_SYSCALL_THREAD_UNREG_INTR)
   );
 }
 

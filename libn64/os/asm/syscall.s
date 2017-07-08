@@ -201,6 +201,7 @@ libn64_syscall_thread_exit_free_stack_l2_entry_finish:
   sw $k0, 0x0($v1)
 
 # Blow out the DTLB (to effectively invalidate the thread's entries).
+# TODO: Only blow out entries corresponding to *this* thread...
 libn64_syscall_thread_exit_dtlb_flush:
   mtc0 $zero, $10
   addiu $k1, $zero, 0x1F
@@ -211,6 +212,17 @@ libn64_syscall_thread_exit_dtlb_flush_loop:
   bgez $k1, libn64_syscall_thread_exit_dtlb_flush_loop
   tlbwi
 
+# Unregister the thread from any interrupts chains that it's on.
+  addiu $a0, $zero, 0x430
+
+libn64_syscall_thread_exit_unreg_intr:
+  addiu $at, $zero, LIBN64_SYSCALL_THREAD_UNREG_INTR
+  syscall
+
+  addiu $at, $a0, -0x444
+  bne $at, $zero, libn64_syscall_thread_exit_unreg_intr
+  addiu $a0, $a0, 0x4
+
 # Mark the thread unblocked (so we don't requeue) and unqueue it.
   lw $k0, 0x420($v0)
   addu $k1, $a1, $zero
@@ -219,27 +231,25 @@ libn64_syscall_thread_exit_dtlb_flush_loop:
   j libn64_context_restore
   lw $k1, 0x8($k0)
 
-libn64_thread_exit:
-  addiu $at, $zero, 0x1
-  syscall
-
 .size libn64_syscall_thread_exit,.-libn64_syscall_thread_exit
 
 # -------------------------------------------------------------------
 #  libn64::thread_reg_intr
-#    $a0 = thread
-#    $a1 = interrupt
+#    $a0 = interrupt
+#    $a1 = thread
 # -------------------------------------------------------------------
 .type libn64_syscall_thread_reg_intr, @function
 .align 5
 libn64_syscall_thread_reg_intr:
-  lui $k0, 0x8000
+  lui $at, 0x8000
   mtc0 $k1, $14
-  addu $k1, $k0, $a1
-  lw $k0, 0x0($k1)
-  sw $a0, 0x0($k1)
-  addu $k1, $a0, $a1
-  sw $k0, (0x1A0-0x430)($k1)
+  addu $k0, $at, $a0
+  lw $k1, 0x0($k0)
+  sw $a1, 0x0($k0)
+  addu $k0, $a1, $a0
+
+libn64_syscall_thread_unreg_intr_found:
+  sw $k1, (0x1A0-0x430)($k0)
   eret
 
 .size libn64_syscall_thread_reg_intr, .-libn64_syscall_thread_reg_intr
@@ -257,17 +267,41 @@ libn64_syscall_thread_self:
   lw $v0, 0x8($k0)
   eret
 
+libn64_thread_exit:
+  addiu $at, $zero, 0x1
+  syscall
+
 .size libn64_syscall_thread_self, .-libn64_syscall_thread_self
 
 # -------------------------------------------------------------------
 #  libn64::thread_unreg_intr
-#    $a0 = thread
-#    $a1 = interrupt
+#    $a0 = interrupt
+#    $a1 = thread
 # -------------------------------------------------------------------
 .type libn64_syscall_thread_unreg_intr, @function
-.align 5
 libn64_syscall_thread_unreg_intr:
+  lui $k0, 0x8000
+  addu $at, $k0, $a0
+  lw $k0, 0x0($at)
   mtc0 $k1, $14
+  beq $k0, $zero, libn64_syscall_thread_unreg_intr_none
+  addu $k1, $k0, $a0
+  beq $k0, $a1, libn64_syscall_thread_unreg_intr_head
+  lw $k1, (0x1A0-0x430)($k1)
+
+libn64_syscall_thread_unreg_intr_loop:
+  beq $k1, $zero, libn64_syscall_thread_unreg_intr_none
+  addu $k0, $k0, $a0
+  addu $at, $k1, $a0
+  beq $k1, $a1, libn64_syscall_thread_unreg_intr_found
+  lw $k1, (0x1A0-0x430)($at)
+  j libn64_syscall_thread_unreg_intr_loop
+  lw $k0, (0x1A0-0x430)($k0)
+
+libn64_syscall_thread_unreg_intr_head:
+  sw $k1, 0x0($at)
+
+libn64_syscall_thread_unreg_intr_none:
   eret
 
 .size libn64_syscall_thread_unreg_intr, .-libn64_syscall_thread_unreg_intr

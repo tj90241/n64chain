@@ -20,7 +20,7 @@ void main(void *);
 // Entry point (invoked from IPL handler).
 libn64func __attribute__((noreturn))
 void libn64_main(uint32_t kernel_sp, uint32_t bss_end) {
-  libn64_thread idle_thread = libn64_thread_early_init(kernel_sp);
+  libn64_thread_early_init(kernel_sp);
 
   // Put the given physical memory region under control of the MM.
   libn64_mm_init(bss_end, kernel_sp - 256);
