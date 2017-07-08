@@ -47,7 +47,7 @@ libn64_tlb_exception_handler:
 # Save $ra so we can use jal without ripping our hair out.
   mtc0 $ra, $30
   lw $k1, 0x8($k1)
-  srl $at, $k0, 0x12
+  srl $at, $k0, 0x11
   andi $at, $at, 0x3E
   addu $k1, $k1, $at
   lhu $at, 0x1C0($k1)
