@@ -226,7 +226,7 @@ libn64_context_restore_fpu:
 libn64_context_save:
   cache 0xD, 0x000($k1)
   sw $at, 0x000($k1)
-  addiu $at, $k1, 0x070
+  addiu $at, $k1, 0x060
 
 libn64_context_save_loop:
   cache 0xD, 0x010($at)

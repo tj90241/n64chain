@@ -45,7 +45,7 @@ libn64_syscall_thread_create:
   addiu $at, $v0, 0x40
 
 libn64_syscall_thread_create_invalidate_loop:
-  cache 0xD, -0x10($at)
+  cache 0xD, 0x1B0($at)
   addiu $at, $at, -0x10
   sd $zero, 0x1C0($at)
   bne $at, $v0, libn64_syscall_thread_create_invalidate_loop
