@@ -9,6 +9,7 @@
 #
 
 #include <libn64.h>
+#include <syscall.h>
 
 .section .text.libn64.asm, "ax", @progbits
 
@@ -113,8 +114,8 @@ libn64_syscall_thread_create_start_new_thread_continue:
 # Set the new thread's status/coprocessor status, ASID, and stack/$gp.
 libn64_syscall_thread_create_start_new:
   lw $k1, 0x8($k0)
-  lw $a1, 0x010($k1) # TODO: check offs
-  lw $a0, 0x01C($k1) # TODO: check offs
+  lw $a1, 0x010($k1)
+  lw $a0, 0x01C($k1)
   mtc0 $a1, $14
 
   addiu $at, $zero, 0x403
@@ -130,10 +131,6 @@ libn64_syscall_thread_create_start_new:
   sw $k0, 0x08C($k1)
   eret
 
-libn64_thread_exit:
-  addiu $at, $zero, 0x1
-  syscall
-
 .size libn64_syscall_thread_create,.-libn64_syscall_thread_create
 
 # -------------------------------------------------------------------
@@ -143,14 +140,88 @@ libn64_thread_exit:
 .align 5
 
 libn64_syscall_thread_exit:
-  lui $k0, 0x8000
-  lw $k0, 0x420($k0)
-  mtc0 $k1, $14
+  lui $v0, 0x8000
+  lw $k0, 0x420($v0)
+  mtc0 $zero, $2
+
+# Return the thread to the thread stack, bump the free count.
+  lw $at, THREAD_FREE_COUNT($k0)
   lw $k1, 0x8($k0)
+  addiu $at, $at, 0x4
+  sw $at, THREAD_FREE_COUNT($k0)
+  addu $at, $at, $k0
+  sw $k1, (THREAD_FREE_LIST-0x4)($at)
+
+# Free any messages that were not yet received by the thread.
+  mtc0 $zero, $3
+  ld $at, 0x190($k1)
+  mtc0 $zero, $10
+  beq $at, $zero, libn64_syscall_thread_exit_free_stack_l2_entries
+  lw $ra, 0x424($v0)
+
+  sw $at, 0x424($v0)
+  dsra32 $at, $at, 0x0
+  sw $ra, 0x0($at)
+
+# Free any tracking information and pages alloc'd for the stack.
+libn64_syscall_thread_exit_free_stack_l2_entries:
+  addu $a1, $k1, $zero
+  addiu $a2, $k1, 0x40
+  mtc0 $zero, $12
+
+libn64_syscall_thread_exit_free_stack_l2_entries_loop:
+  beq $a2, $k1, libn64_syscall_thread_exit_dtlb_flush
+  lhu $v1, (0x1C0 - 0x2)($a2)
+
+  addiu $a2, $a2, -0x2
+  beq $v1, $zero, libn64_syscall_thread_exit_free_stack_l2_entries_loop
+  sll $v1, $v1, 0x7
+  or $v1, $v1, $v0
+  addiu $ra, $v1, 0x80
+
+libn64_syscall_thread_exit_free_stack_pages_loop:
+  beq $ra, $v1, libn64_syscall_thread_exit_free_stack_l2_entry_finish
+  lhu $a0, -0x2($ra)
+
+  addiu $ra, $ra, -0x2
+  beq $a0, $zero, libn64_syscall_thread_exit_free_stack_pages_loop
+  addiu $at, $zero, LIBN64_SYSCALL_PAGE_FREE
+  sll $a0, $a0, 0xC
+  syscall
+
+  bne $ra, $v1, libn64_syscall_thread_exit_free_stack_pages_loop
+  addu $k1, $a1, $zero
+
+libn64_syscall_thread_exit_free_stack_l2_entry_finish:
+  lw $k0, 0x42C($v0)
+  sw $v1, 0x42C($v0)
+  addu $k1, $a1, $zero
+  cache 0xD, 0x0($v1)
+  bne $a2, $k1, libn64_syscall_thread_exit_free_stack_l2_entries_loop
+  sw $k0, 0x0($v1)
+
+# Blow out the DTLB (to effectively invalidate the thread's entries).
+libn64_syscall_thread_exit_dtlb_flush:
+  mtc0 $zero, $10
+  addiu $k1, $zero, 0x1F
+
+libn64_syscall_thread_exit_dtlb_flush_loop:
+  mtc0 $k1, $0
+  addiu $k1, $k1, -0x1
+  bgez $k1, libn64_syscall_thread_exit_dtlb_flush_loop
+  tlbwi
+
+# Mark the thread unblocked (so we don't requeue) and unqueue it.
+  lw $k0, 0x420($v0)
+  addu $k1, $a1, $zero
   jal libn64_exception_handler_dequeue_thread
   sw $zero, 0x80($k1)
   j libn64_context_restore
   lw $k1, 0x8($k0)
+
+libn64_thread_exit:
+  addiu $at, $zero, 0x1
+  syscall
 
 .size libn64_syscall_thread_exit,.-libn64_syscall_thread_exit
 
@@ -282,7 +353,7 @@ libn64_syscall_recv_message:
   lui $k1, 0x8000
   lw $k1, 0x420($k1)
   lw $k1, 0x8($k1)
-  lw $at, 0x190($k1)
+  lw $at, 0x194($k1)
 
 # If there are no messages available, block the thread.
 libn64_recv_message_block:
@@ -300,10 +371,10 @@ libn64_recv_message_block:
 # If the message has a successor, make it the new queue head.
 # If there is no successor, then there is no tail; update it.
 libn64_recv_message_deque:
-  sw $k0, 0x190($k1)
+  sw $k0, 0x194($k1)
   bnel $k0, $zero, libn64_recv_message_after_next_update
   sw $zero, 0x4($k0)
-  sw $zero, 0x194($k1)
+  sw $zero, 0x190($k1)
 
 # Return the freed message to the message cache.
 # Return the contents of the message to the caller.

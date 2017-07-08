@@ -25,7 +25,7 @@ libn64_send_message:
   lui $k1, 0x8000
   lw $k0, 0x424($k1)
   beq $k0, $zero, libn64_send_message_expand_cache
-  lwu $at, 0x194($a0)
+  lwu $at, 0x190($a0)
   addu $k1, $at, $zero
 
 # Allocate a message from the message cache and populate it.
@@ -33,7 +33,7 @@ libn64_send_message:
 # If there isn't a message, then we're the head, so update it.
   bnel $at, $zero, libn64_send_message_after_prev_update
   sw $k0, 0x0($k1)
-  sw $k0, 0x190($a0)
+  sw $k0, 0x194($a0)
 
 # Stuff the message, update the tail, remove from the cache.
 libn64_send_message_after_prev_update:
@@ -43,7 +43,7 @@ libn64_send_message_after_prev_update:
   sw $a2, 0xC($k0)
 
   lui $at, 0x8000
-  sw $k0, 0x194($a0)
+  sw $k0, 0x190($a0)
   jr $ra
   sw $k1, 0x424($at)
 

@@ -17,7 +17,7 @@ libn64func __attribute__((always_inline))
 static inline struct libn64_mm *libn64_get_mm(void) {
   struct libn64_mm *mm;
 
-  __asm__(
+  __asm__ __volatile__(
     "lui %0, 0x8000\n\t"
     "addiu %0, %0, 0x410\n\t"
     : "=r"(mm)
@@ -31,7 +31,7 @@ libn64func __attribute__((always_inline))
 static inline libn64_mm_page_list *libn64_get_mm_page_list(void) {
   libn64_mm_page_list *mm_page_list;
 
-  __asm__(
+  __asm__ __volatile__(
     "lui %0, 0x8000\n\t"
     "lw %0, 0x428(%0)\n\t"
     : "=r"(mm_page_list)
@@ -53,7 +53,7 @@ void libn64_mm_init(uint32_t physmem_bottom, uint32_t physmem_top) {
   mm_page_list = (libn64_mm_page_list *) (physmem_top);
   physmem_top -= 0x1000;
 
-  __asm__(
+  __asm__ __volatile__(
     ".set gp=64\n\t"
     "sd $zero, 0x0(%0)\n\t"
     "sd $zero, 0x8(%0)\n\t"
@@ -71,7 +71,7 @@ void libn64_mm_init(uint32_t physmem_bottom, uint32_t physmem_top) {
 
   // Set the page allocator pointer.
   // Clear L2 stack entry list pointer.
-  __asm__(
+  __asm__ __volatile__(
     ".set noat\n\t"
     "lui $at, 0x8000\n\t"
     "sw %0, 0x428($at)\n\t"
@@ -83,7 +83,6 @@ void libn64_mm_init(uint32_t physmem_bottom, uint32_t physmem_top) {
 
   // Invalidate all the TLB entries.
   __asm__ __volatile__(
-    "mtc0 $zero, $5\n\t" // PageMask
     "mtc0 $zero, $2\n\t" // EntryLo0
     "mtc0 $zero, $3\n\t" // EntryLo1
     "mtc0 $zero, $6\n\t" // Wired
