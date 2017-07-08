@@ -118,6 +118,11 @@ libn64_init_bss_clear:
 # Done from the ASM side of things; off to C to continue init'ing.
   lui $at,0x8000
   sw $sp, 0x420($at)
+
+  mtc0 $zero, $2 # EntryLo0
+  mtc0 $zero, $3 # EntryLo1
+  mtc0 $zero, $6 # Wired
+
   j libn64_main
   addu $a0, $sp, $zero
 

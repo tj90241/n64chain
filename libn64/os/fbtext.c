@@ -22,9 +22,11 @@ libn64func
 static unsigned libn64_fbchar16(const struct libn64_fbtext_context *context,
     uint32_t fb_address, char c);
 
+#ifdef LIBN64_FBTEXT_32BPP
 libn64func
 static unsigned libn64_fbchar32(const struct libn64_fbtext_context *context,
     uint32_t fb_address, char c);
+#endif
 
 // 95 member font table; starts with the ' ' char.
 // This blob is licensed under the public domain.
@@ -426,30 +428,23 @@ unsigned libn64_fbchar16(const struct libn64_fbtext_context *context,
 
     // Flush line contents if valid; otherwise flag it dirty.
     // This prevents an otherwise redundant read from memory.
-    __asm__ __volatile__(
-      "cache 0xD, 0x0(%0)\n\t"
-      :: "r"(fb_address)
-    );
+    __builtin_mips_cache(0xD, (volatile void *) fb_address);
 
     for (fb_address += 8 << 1, j = 0; j < 8; j++) {
       unsigned bit = (bitmask >> j) & 0x1;
       uint16_t color = context->colors[bit];
 
       __asm__ __volatile__(
-        "sh %0, -2(%1)\n\t"
-        :: "r"(color), "r"(fb_address)
+        "sh %1, -2(%2)\n\t"
+        "addiu %0, %2, -0x2"
+        : "=r" (fb_address)
+        : "r"(color), "0"(fb_address)
         : "memory"
       );
-
-      fb_address -= 2;
     }
 
     // Ensure the line gets written to memory.
-    __asm__ __volatile__(
-      "cache 0x19, 0x0(%0)\n\t"
-      :: "r"(fb_address)
-    );
-
+    __builtin_mips_cache(0x19, (volatile void *) fb_address);
     fb_address += context->fb_width;
   }
 
@@ -468,32 +463,25 @@ unsigned libn64_fbchar32(const struct libn64_fbtext_context *context,
 
     // Flush line contents if valid; otherwise flag it dirty.
     // This prevents an otherwise redundant read from memory.
-    __asm__ __volatile__(
-      "cache 0xD, 0x0(%0)\n\t"
-      "cache 0xD, 0x10(%0)\n\t"
-      :: "r"(fb_address)
-    );
+    __builtin_mips_cache(0xD, (volatile void *) fb_address);
+    __builtin_mips_cache(0xD, (volatile void *) (fb_address + 0x10));
 
     for (fb_address += 8 << 2, j = 0; j < 8; j ++) {
       unsigned bit = (bitmask >> j) & 0x1;
       uint16_t color = context->colors[bit];
 
       __asm__ __volatile__(
-        "sw %0, -4(%1)\n\t"
-        :: "r"(color), "r"(fb_address)
+        "sw %1, -4(%2)\n\t"
+        "addiu %0, %2, -0x4"
+        : "=r" (fb_address)
+        : "r"(color), "0"(fb_address)
         : "memory"
       );
-
-      fb_address -= 4;
     }
 
     // Ensure the line gets written to memory.
-    __asm__ __volatile__(
-      "cache 0x19, 0x0(%0)\n\t"
-      "cache 0x19, 0x10(%0)\n\t"
-      :: "r"(fb_address)
-    );
-
+    __builtin_mips_cache(0x19, (volatile void *) fb_address);
+    __builtin_mips_cache(0x19, (volatile void *) (fb_address + 0x10));
 
     fb_address += context->fb_width;
   }
@@ -508,16 +496,15 @@ void libn64_fbtext_init(struct libn64_fbtext_context *context,
   context->colors[LIBN64_FBTEXT_COLOR_FG] = fg_color;
 
   context->fb_origin = fb_origin | 0x80000000;
+  context->fb_width = fb_width << mode;
   context->x = 0;
   context->y = 0;
 
-  if (mode == LIBN64_FBTEXT_16BPP) {
-    context->render_char = libn64_fbchar16;
-    context->fb_width = fb_width << 1;
-  } else {
-    context->render_char = libn64_fbchar32;
-    context->fb_width = fb_width << 2;
-  }
+#ifdef LIBN64_FBTEXT_32BPP
+  context->render_char = mode == LIBN64_FBTEXT_16BPP
+    ? libn64_fbchar16
+    : libn64_fbchar32;
+#endif
 }
 
 void libn64_fbtext_puts(struct libn64_fbtext_context *context,
@@ -539,7 +526,11 @@ void libn64_fbtext_puts(struct libn64_fbtext_context *context,
     }
 
     fb_address = context->fb_origin + context->fb_width * (context->y << 4);
+#ifdef LIBN64_FBTEXT_32BPP
     mode = context->render_char(context, fb_address, string[i]);
+#else
+    mode = libn64_fbchar16(context, fb_address, string[i]);
+#endif
     context->x++;
 
     if ((context->x + 1) > context->fb_width / (8 << mode)) {

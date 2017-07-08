@@ -55,6 +55,7 @@ void libn64_mm_init(uint32_t physmem_bottom, uint32_t physmem_top) {
 
   __asm__ __volatile__(
     ".set gp=64\n\t"
+    "cache 0xD, (%0)\n\t"
     "sd $zero, 0x0(%0)\n\t"
     "sd $zero, 0x8(%0)\n\t"
     ".set gp=default\n\t"
@@ -82,12 +83,6 @@ void libn64_mm_init(uint32_t physmem_bottom, uint32_t physmem_top) {
   );
 
   // Invalidate all the TLB entries.
-  __asm__ __volatile__(
-    "mtc0 $zero, $2\n\t" // EntryLo0
-    "mtc0 $zero, $3\n\t" // EntryLo1
-    "mtc0 $zero, $6\n\t" // Wired
-  );
-
   for (i = 0; i < 32; i++) {
     __asm__ __volatile__(
       "mtc0 %0, $0\n\t" // Index

@@ -14,6 +14,9 @@
 #include <libn64.h>
 #include <stdint.h>
 
+// Uncomment to provide 32bpp support.
+//#define LIBN64_FBTEXT_32BPP
+
 #define LIBN64_FBTEXT_COLOR_BG 0
 #define LIBN64_FBTEXT_COLOR_FG 1
 
@@ -21,12 +24,16 @@
 #define LIBN64_FBTEXT_COLOR_WHITE (~0)
 
 enum libn64_fbtext_mode {
-  LIBN64_FBTEXT_16BPP,
-  LIBN64_FBTEXT_32BPP
+  LIBN64_FBTEXT_16BPP = 1,
+#ifdef LIBN64_FBTEXT_32BIT
+  LIBN64_FBTEXT_32BPP = 2
+#endif
 };
 
 struct libn64_fbtext_context {
+#ifdef LIBN64_FBTEXT_32BIT
   unsigned (*render_char)(const struct libn64_fbtext_context *, uint32_t, char);
+#endif
 
   uint32_t colors[2];
   uint32_t fb_origin;

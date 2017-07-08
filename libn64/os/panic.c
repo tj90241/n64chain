@@ -129,8 +129,9 @@ void libn64_panic_from_isr(void) {
       "cache 0xD, 0x0(%[fb_cur])\n\t"
       "addiu %[fb_cur], %[fb_cur], 0x10\n\t"
       "sd $zero, -0x10(%[fb_cur])\n\t"
-      "bne %[fb_end], $zero, 1b\n\t"
       "sd $zero, -0x8(%[fb_cur])\n\t"
+      "bne %[fb_end], $zero, 1b\n\t"
+      "cache 0x19, -0x10(%[fb_cur])\n\t"
     ".set reorder\n\t"
     ".set gp=default\n\t"
 
@@ -156,20 +157,6 @@ void libn64_panic_from_isr(void) {
     libn64_fbtext_puts(&fbtext, gp_register_strs[i]);
     libn64_fbtext_putu32(&fbtext, context[i]);
   }
-
-  // Flush the remaining, unwritten lines in cache.
-  __asm__ __volatile__(
-    ".set noreorder\n\t"
-    "xori %0, %2, 0x2000\n\t"
-    "1:\n\t"
-      "addiu %0, %0, 0x10\n\t"
-      "bne %0, %1, 1b\n\t"
-      "cache 0xD, -0x10(%0)\n\t"
-    ".set reorder\n\t"
-
-    : [fb_cur] "=&r" (fb_cur)
-    : "0" (fb_cur), [fb_end] "r" (0x80002000)
-  );
 
   // Flush the VI state and tie up the system.
   vi_flush_state(&libn64_panic_vi_state);
