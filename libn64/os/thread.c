@@ -54,7 +54,7 @@ libn64_thread libn64_thread_early_init(uint32_t kernel_sp) {
 
   self->priority = LIBN64_THREAD_MIN_PRIORITY;
   self->messages_head = self->messages_tail = NULL;
-  self->state.mi_intr_reg = 0x595;
+  self->state.mi_intr_reg = 0xAAA;
 
   // Enable interrupts going forward.
   __asm__ __volatile__(

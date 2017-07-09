@@ -25,7 +25,7 @@
 # -------------------------------------------------------------------
 .set THREAD_FREE_COUNT, ((LIBN64_THREADS_MAX + 1) * 0x8)
 .set THREAD_FREE_LIST, (THREAD_FREE_COUNT + 0x4)
-.set DEFAULT_MI_INTR_MASK, 0x595
+.set DEFAULT_MI_INTR_MASK, 0xAAA
 
 .type libn64_syscall_thread_create, @function
 .align 5
