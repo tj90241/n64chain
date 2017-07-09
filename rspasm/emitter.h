@@ -47,5 +47,9 @@ int rspasm_emit_instruction_rrr(struct rspasm *rspasm,
   const YYLTYPE *loc, enum rsp_opcode opcode,
   unsigned rd, unsigned rs, unsigned rt);
 
+int rspasm_emit_instruction_rrs(struct rspasm *rspasm,
+  const YYLTYPE *loc, enum rsp_opcode opcode,
+  unsigned rd, unsigned rt, unsigned sa);
+
 #endif
 
