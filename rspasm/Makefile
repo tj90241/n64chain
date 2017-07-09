@@ -24,6 +24,7 @@ OPTFLAGS = -O2
 
 CFILES = \
 	emitter.c \
+	identifiers.c \
 	lexer.c \
 	main.c \
 	parser.c \

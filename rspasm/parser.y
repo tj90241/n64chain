@@ -28,6 +28,7 @@ int yydebug = 0;
 }
 
 %code requires {
+#include "identifiers.h"
 #include "opcodes.h"
 #include "rspasm.h"
 #include "symbols.h"
@@ -47,8 +48,7 @@ typedef void *yyscan_t;
 // Raised on a parser error.
 int yyerror(YYLTYPE *yylloc, yyscan_t scanner, const char *error) {
   //struct rspasm *rspasm = rspasmget_extra(scanner);
-
-  fprintf(stderr, "line %d: Parse error.\n", yylloc->first_line);
+  fprintf(stderr, "line %d: %s\n", yylloc->first_line, error);
   return 0;
 }
 }
@@ -61,7 +61,9 @@ int yyerror(YYLTYPE *yylloc, yyscan_t scanner, const char *error) {
 %token DOTDATA
 %token DOTDMAX
 %token DOTHALF
+%token DOTSET
 %token DOTTEXT
+%token DOTUNSET
 %token DOTWORD
 %token IDENTIFIER
 %token LEFT_BRACKET
@@ -99,6 +101,7 @@ int yyerror(YYLTYPE *yylloc, yyscan_t scanner, const char *error) {
 %token RIGHT_BRACKET
 %token RIGHT_PAREN
 %token SCALAR_REG
+%token VECTOR_REG
 %token VOPCODE
 
 %left OP_AND
@@ -118,7 +121,7 @@ int yyerror(YYLTYPE *yylloc, yyscan_t scanner, const char *error) {
 %type <identifier> IDENTIFIER
 %type <opcode> OPCODE OPCODE_RI OPCODE_RO OPCODE_RRC0 OPCODE_RRI OPCODE_RRR
                VOPCODE
-%type <reg> SCALAR_REG
+%type <reg> SCALAR_REG VECTOR_REG scalar_register
 
 %%
 
@@ -143,12 +146,6 @@ directive:
         return EXIT_FAILURE;
     }
 
-  | DOTDATA constexpr
-  | DOTDMAX constexpr {
-      if (rspasm_dmax_assert(rspasmget_extra(scanner), &yyloc, $2))
-        return EXIT_FAILURE;
-    }
-
   | DOTHALF expr {
       if (rspasm_emit_half(rspasmget_extra(scanner), &yyloc, $2))
         return EXIT_FAILURE;
@@ -159,8 +156,51 @@ directive:
         return EXIT_FAILURE;
     }
 
+  | DOTSET IDENTIFIER COMMA constexpr {
+      struct rspasm *rspasm = rspasmget_extra(scanner);
+
+      if (!rspasm->first_pass) {
+        rspasm_identifiers_set(rspasm->identifiers, $2, $4,
+            RSPASM_IDENTIFIER_NODE_INT);
+      }
+    }
+
+  | DOTSET IDENTIFIER COMMA SCALAR_REG {
+      struct rspasm *rspasm = rspasmget_extra(scanner);
+
+      if (!rspasm->first_pass) {
+        rspasm_identifiers_set(rspasm->identifiers, $2, $4,
+            RSPASM_IDENTIFIER_NODE_REG);
+      }
+    }
+
+  | DOTSET IDENTIFIER COMMA VECTOR_REG {
+      struct rspasm *rspasm = rspasmget_extra(scanner);
+
+      if (!rspasm->first_pass) {
+        rspasm_identifiers_set(rspasm->identifiers, $2, $4,
+            RSPASM_IDENTIFIER_NODE_VREG);
+      }
+    }
+
+  | DOTUNSET IDENTIFIER {
+      struct rspasm *rspasm = rspasmget_extra(scanner);
+
+      if (!rspasm->first_pass) {
+        if (!rspasm_identifiers_unset(rspasm->identifiers, $2)) {
+          printf("Warning: %s was undefined at .unset\n", $2);
+        }
+      }
+  }
+
   | DOTDATA { ((struct rspasm *) rspasmget_extra(scanner))->in_text = false; }
   | DOTTEXT { ((struct rspasm *) rspasmget_extra(scanner))->in_text = true; }
+
+  | DOTDATA constexpr
+  | DOTDMAX constexpr {
+      if (rspasm_dmax_assert(rspasmget_extra(scanner), &yyloc, $2))
+        return EXIT_FAILURE;
+    }
   ;
 
 label:
@@ -180,36 +220,67 @@ scalar_instruction:
         return EXIT_FAILURE;
     }
 
-    | OPCODE_RI SCALAR_REG COMMA expr {
+    | OPCODE_RI scalar_register COMMA expr {
       if (rspasm_emit_instruction_ri(
         rspasmget_extra(scanner), &yyloc, $1, $2, $4))
         return EXIT_FAILURE;
     }
 
-    | OPCODE_RO SCALAR_REG COMMA expr LEFT_PAREN SCALAR_REG RIGHT_PAREN {
+    | OPCODE_RO scalar_register COMMA expr LEFT_PAREN scalar_register RIGHT_PAREN {
       if (rspasm_emit_instruction_ro(
         rspasmget_extra(scanner), &yyloc, $1, $2, $4, $6))
         return EXIT_FAILURE;
     }
 
-    | OPCODE_RRC0 SCALAR_REG COMMA SCALAR_REG {
+    | OPCODE_RRC0 SCALAR_REG COMMA scalar_register {
       if (rspasm_emit_instruction_rrc0(
         rspasmget_extra(scanner), &yyloc, $1, $2, $4))
         return EXIT_FAILURE;
     }
 
-    | OPCODE_RRI SCALAR_REG COMMA SCALAR_REG COMMA expr {
+    | OPCODE_RRI SCALAR_REG COMMA scalar_register COMMA expr {
       if (rspasm_emit_instruction_rri(
         rspasmget_extra(scanner), &yyloc, $1, $2, $4, $6))
         return EXIT_FAILURE;
     }
 
-    | OPCODE_RRR SCALAR_REG COMMA SCALAR_REG COMMA SCALAR_REG {
+    | OPCODE_RRR SCALAR_REG COMMA scalar_register COMMA scalar_register {
       if (rspasm_emit_instruction_rrr(
         rspasmget_extra(scanner), &yyloc, $1, $2, $4, $6))
         return EXIT_FAILURE;
     }
 
+  ;
+
+scalar_register:
+    SCALAR_REG {
+      $$ = $1;
+    }
+
+  | IDENTIFIER {
+      const struct rspasm *rspasm = rspasmget_extra(scanner);
+
+      if (!rspasm->first_pass) {
+        enum rspasm_identifier_node_type type;
+        int32_t reg;
+
+        if (!rspasm_identifiers_get(rspasm->identifiers, $1, &reg, &type)) {
+          fprintf(stderr, "line %u: unknown symbol or identifier: %s\n",
+              @1.first_line, $1);
+
+          YYERROR;
+        }
+
+        if (type != RSPASM_IDENTIFIER_NODE_REG) {
+          fprintf(stderr, "line %u: %s: expected a scalar register\n",
+              @1.first_line, $1);
+
+          YYERROR;
+        }
+
+        $$ = reg;
+      }
+    }
   ;
 
 vector_instruction:
@@ -250,14 +321,32 @@ expr:
         $$ = 0;
 
       else {
-        uint32_t val;
+        uint32_t addr;
+        int32_t val;
 
-        if (rspasm_get_symbol_address(rspasmget_extra(scanner), $1, &val)) {
-          fprintf(stderr, "Unknown symbol: %s\n", $1);
-          return EXIT_FAILURE;
+        if (rspasm_get_symbol_address(rspasm, $1, &addr)) {
+          enum rspasm_identifier_node_type type;
+
+          if (!rspasm_identifiers_get(rspasm->identifiers, $1, &val, &type)) {
+            fprintf(stderr, "line %u: unknown symbol or identifier: %s\n",
+                @1.first_line, $1);
+
+            YYERROR;
+          }
+
+          if (type != RSPASM_IDENTIFIER_NODE_INT) {
+            fprintf(stderr, "line %u: %s is a register; expected a constant\n",
+                @1.first_line, $1);
+
+            YYERROR;
+          }
+
+          $$ = val;
         }
 
-        $$ = val;
+        else {
+          $$ = addr;
+        }
       }
     }
 

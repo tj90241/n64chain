@@ -23,7 +23,7 @@ struct rspasm_symbol {
 };
 
 static int rspasm_symbol_binary_search(const struct rspasm_symbol *symbols,
-  const char *name, size_t mini, size_t maxi);
+  const char *name, long long mini, long long maxi);
 
 static int rspasm_symbols_compare(const void *a, const void *b);
 
@@ -105,9 +105,11 @@ int rspasm_get_symbol_address(const struct rspasm *rspasm,
   const char *name, uint32_t *addr) {
   int chk_addr;
 
+  if (rspasm->num_symbols == 0)
+    return -1;
+
   if ((chk_addr = rspasm_symbol_binary_search(
     rspasm->symbols, name, 0, rspasm->num_symbols - 1)) < 0) {
-    fprintf(stderr, "Undefined symbol: %s\n", name);
     return -1;
   }
 
@@ -116,7 +118,7 @@ int rspasm_get_symbol_address(const struct rspasm *rspasm,
 }
 
 int rspasm_symbol_binary_search(const struct rspasm_symbol *symbols,
-  const char *name, size_t mini, size_t maxi) {
+  const char *name, long long mini, long long maxi) {
   size_t midi;
   int cmp;
 

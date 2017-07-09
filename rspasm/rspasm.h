@@ -15,9 +15,11 @@
 #include <stdio.h>
 
 // Forward declarations.
+struct rspasm_identifiers;
 struct rspasm_symbol;
 
 struct rspasm {
+  struct rspasm_identifiers *identifiers;
   struct rspasm_symbol *symbols;
   size_t num_symbols, max_symbols;
 

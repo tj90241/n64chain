@@ -17,15 +17,24 @@
 #define YYLTYPE RSPASMLTYPE
 #define YYSTYPE RSPASMSTYPE
 
-#define YY_EXTRA_TYPE struct rspasm_data *
-#define YY_USER_ACTION yylloc->first_line = yylloc->last_line = yylineno; \
-  yylloc->first_column = yycolumn; yylloc->last_column = yycolumn + yyleng - 1;
+#define YY_USER_ACTION \
+  yylloc->first_line = yylloc->last_line; \
+  yylloc->first_column = yylloc->last_column; \
+  for(int i = 0; yytext[i] != '\0'; i++) { \
+    if(yytext[i] == '\n') { \
+      yylloc->last_line++; \
+      yylloc->last_column = 0; \
+    } else { \
+      yylloc->last_column++; \
+    } \
+  }
 
 static void get_constant_with_base(
-  YYSTYPE *val, const char *text, int lineno, unsigned base);
+    YYSTYPE *val, const char *text, int lineno, unsigned base);
 
 static void get_identifier(YYSTYPE *val, const char *text, int lineno);
-static void get_register_number(YYSTYPE *val, const char *text, int lineno);
+static enum rspasmtokentype get_register(YYSTYPE *val, const char *text,
+    int lineno, enum rspasmtokentype register_token);
 
 %}
 
@@ -34,8 +43,8 @@ static void get_register_number(YYSTYPE *val, const char *text, int lineno);
 %option reentrant bison-bridge
 %option bison-locations
 %option yylineno
-
 %option noyywrap
+
 %%
 
 "add" { yylval->opcode = ADD; return OPCODE_RRR; }
@@ -164,7 +173,9 @@ static void get_register_number(YYSTYPE *val, const char *text, int lineno);
 ".data" { return DOTDATA; }
 ".dmax" { return DOTDMAX; }
 ".half" { return DOTHALF; }
+".set" { return DOTSET; }
 ".text" { return DOTTEXT; }
+".unset" { return DOTUNSET; }
 ".word" { return DOTWORD; }
 
 "," { return COMMA; }
@@ -200,9 +211,13 @@ static void get_register_number(YYSTYPE *val, const char *text, int lineno);
 "$fp" { yylval->reg = 30; return SCALAR_REG; }
 "$ra" { yylval->reg = 31; return SCALAR_REG; }
 
-"$"[0-9]* {
-  get_register_number(yylval, yytext + 1, yylineno);
-  return SCALAR_REG;
+"$"v[0-9]+ {
+  return get_register(yylval, yytext + 2, yylineno, VECTOR_REG);
+}
+
+
+"$"[0-9]+ {
+  return get_register(yylval, yytext + 1, yylineno, SCALAR_REG);
 }
 
 "&" { return OP_AND; }
@@ -234,18 +249,22 @@ static void get_register_number(YYSTYPE *val, const char *text, int lineno);
   }
 }
 
-[ \t\n]
+[ \t\n] {}
 
 %%
 
 void get_constant_with_base(YYSTYPE *val,
-  const char *text, int lineno, unsigned base) {
+    const char *text, int lineno, unsigned base) {
   val->constant = strtol(text, NULL, base);
 
   if (val->constant == LONG_MIN || val->constant == LONG_MAX) {
     if (errno == ERANGE) {
-      fprintf(stderr, "line %d: "
-        "Value is out of assembler's supported range.\n", lineno);
+      char error[80];
+
+      snprintf(error, sizeof(error), "line %u: "
+          "value is out of the assembler's supported range", lineno);
+
+      yy_fatal_error(error, NULL);
     }
   }
 }
@@ -264,12 +283,20 @@ void get_identifier(YYSTYPE *val, const char *text, int lineno) {
   val->identifier[len] = '\0';
 }
 
-void get_register_number(YYSTYPE *val, const char *text, int lineno) {
+enum rspasmtokentype get_register(YYSTYPE *val, const char *text,
+    int lineno, enum rspasmtokentype register_token) {
   long reg = strtol(text, NULL, 10);
 
-  if (reg < 0 || reg > 31)
-    fprintf(stderr, "line %d: Invalid scalar register specified.\n", lineno);
+  if (reg < 0 || reg > 31) {
+    char error[80];
+
+    snprintf(error, sizeof(error), "line %u: "
+        "invalid register specified", lineno);
+
+    yy_fatal_error(error, NULL);
+  }
 
   val->reg = reg;
+  return register_token;
 }
 

@@ -60,7 +60,7 @@ $(ROM_NAME).z64: $(ROM_NAME).elf
 	@$(OBJCOPY) -O binary $< $@
 	@$(CHECKSUM) $(call FIXPATH,../libn64/header.bin) $@
 
-$(ROM_NAME).elf: libn64 $(OBJFILES)
+$(ROM_NAME).elf: libn64 $(OBJFILES) $(UCODEBINS)
 	@echo $(call FIXPATH,"Building: $(ROM_NAME)/$@")
 	@$(CC) $(CFLAGS) $(OPTFLAGS) -Wl,-Map=$(ROM_NAME).map -nostdlib \
 		-T$(call FIXPATH,../libn64/rom.ld) -o $@ $(OBJFILES) \

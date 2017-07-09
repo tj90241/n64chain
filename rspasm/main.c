@@ -10,6 +10,7 @@
 
 #define YYLTYPE RSPASMLTYPE
 #define YYSTYPE RSPASMSTYPE
+#include "identifiers.h"
 #include "parser.h"
 #include "lexer.h"
 #include "rspasm.h"
@@ -27,6 +28,7 @@ int assemble(FILE *in, FILE *out) {
   YY_BUFFER_STATE buf;
   yyscan_t scanner;
 
+  struct rspasm_identifiers identifiers;
   struct rspasm rspasm;
   int status;
 
@@ -35,8 +37,15 @@ int assemble(FILE *in, FILE *out) {
     return EXIT_FAILURE;
   }
 
+  if (rspasm_identifiers_create(&identifiers)) {
+    fprintf(stderr, "Failed to initialize the identifier map.\n");
+    rspasmlex_destroy(scanner);
+    return EXIT_FAILURE;
+  }
+
   rspasmset_extra(&rspasm, scanner);
   memset(&rspasm, 0x00, sizeof(rspasm));
+  rspasm.identifiers = &identifiers;
 
   rspasm.dhead = 0x0000;
   rspasm.ihead = 0x1000;
@@ -72,6 +81,7 @@ int assemble(FILE *in, FILE *out) {
     }
   }
 
+  rspasm_identifiers_destroy(&identifiers);
   rspasm_delete_buffer(buf, scanner);
   rspasmlex_destroy(scanner);
   return status;
