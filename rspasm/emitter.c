@@ -260,6 +260,28 @@ int rspasm_emit_instruction_rrr(struct rspasm *rspasm,
   return 0;
 }
 
+int rspasm_emit_instruction_rrs(struct rspasm *rspasm,
+  const YYLTYPE *loc, enum rsp_opcode opcode,
+  unsigned rd, unsigned rt, unsigned sa) {
+  uint32_t iw;
+
+  if (rd == 0) {
+    fprintf(stderr, "line %d: Instruction writes to $0.\n",
+      loc->first_line);
+  }
+
+  if (sa > 31) {
+    fprintf(stderr, "line %d: Shift amount beyond specified range.\n",
+      loc->first_line);
+  }
+
+  iw = htonl(opcode | (rd << 11) | (rt << 16) | ((sa & 0x1F) << 6));
+  memcpy(rspasm->data + rspasm->ihead, &iw, sizeof(iw));
+  rspasm->ihead += sizeof(iw);
+
+  return 0;
+}
+
 int rspasm_emit_word(struct rspasm *rspasm, const YYLTYPE *loc, long int word) {
   uint32_t uword;
 
