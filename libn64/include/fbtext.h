@@ -14,9 +14,6 @@
 #include <libn64.h>
 #include <stdint.h>
 
-// Uncomment to provide 32bpp support.
-//#define LIBN64_FBTEXT_32BPP
-
 #define LIBN64_FBTEXT_COLOR_BG 0
 #define LIBN64_FBTEXT_COLOR_FG 1
 

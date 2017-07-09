@@ -32,6 +32,7 @@ static const vi_state_t libn64_panic_vi_state = {
 };
 
 void libn64_panic_from_isr(void) {
+  __attribute__((section(".cart.libn64.panicstrs")))
   static const char *exception_strings[34] = {
     "Interrupt",
     "TLB Modification",
@@ -70,6 +71,7 @@ void libn64_panic_from_isr(void) {
     "libn64: Exhausted Memory"
   };
 
+  __attribute__((section(".cart.libn64.gprstrs")))
   static const char *gp_register_strs[] = {
     "$at:",
     " $v0:",

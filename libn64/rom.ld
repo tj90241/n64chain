@@ -15,13 +15,6 @@ EXTERN(libn64_ipl)
 ENTRY(libn64_ipl)
 
 SECTIONS {
-  .exception 0xFFFFFFFF80000000 : AT (__bss_end) {
-    *(.exception.tlbmiss)
-    *(.exception.general)
-    *(.exception.routines)
-  }
-
-  /* TEXT */
   .text 0xFFFFFFFF80000400 : AT (0xFFFFFFFF80000400) {
     *(.text.libn64.ipl)
     *(.text.libn64.asm)
@@ -127,6 +120,23 @@ SECTIONS {
 
   . = ALIGN(16);
   __bss_end = .;
+
+  /* Place the exception handlers that get DMA'd over the MIPS */
+  /* exceptions vector immediately after the end of the BSS. */
+  .exception 0xFFFFFFFF80000000 : AT (__bss_end) {
+    *(.exception.tlbmiss)
+    *(.exception.general)
+    *(.exception.routines)
+  }
+
+  /* And, following that, any resources which live on the cart. */
+  __exception_end = __bss_end + 0x400;
+
+  .cart 0x30000C00 + __exception_end : AT(__exception_end) {
+    *(.cart.libn64.*)
+  }
+
+  /* TEXT */
 
   /* Everything is statically linked, so discard PLTs. */
   /DISCARD/ : { *(.rel.iplt) *(.rela.iplt) *(.rel.plt) *(.rela.plt) *(.plt) *(.iplt) }
