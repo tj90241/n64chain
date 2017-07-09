@@ -66,13 +66,12 @@ void main(void *opaque __attribute__((unused))) {
   fbtext.x = fbtext.y = 2;
   libn64_fbtext_puts(&fbtext, "Submitting uCode...\n");
 
-  uint32_t *rspIMem = (uint32_t *) (0xA4001000);
+  uint32_t *rspMem = (uint32_t *) (0xA4000000);
   uint32_t *rspStatus = (uint32_t *) (0xA4040010);
   uint32_t *rspPC = (uint32_t *) (0xA4080000);
 
-  for (i = 0; i < 0x400; i++) {
-    //__asm__ __volatile__("move $a0, %0\n\tsw $zero, 0x0($zero)\n\t" :: "r"( __ucode[0x400]));
-    rspIMem[i] = __ucode[i + 0x400];
+  for (i = 0; i < 0x800; i++) {
+    rspMem[i] = __ucode[i];
   }
 
   *rspPC = 0x4001000;

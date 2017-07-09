@@ -41,6 +41,12 @@
 .set CLEAR_CMD_COUNTER,     0x100
 .set CLEAR_CLOCK_COUNTER,   0x200
 
+.data
+.word 80
+.word 120
+.word 240
+.word 200
+
 .text
 
 init_rsp:
@@ -58,52 +64,71 @@ init_rdp:
 
 # Build 'Set Scissor' (xl=320.0, yl=240.0, xh=0.0, yl=0.0)
   lui $at, 0x2D00
-  sw $at, 0x0($0)
+  sw $at, 0x100($0)
   lui $at, 0x0050
   addiu $at, $at, 0x03C0
-  sw $at, 0x4($0)
+  sw $at, 0x104($0)
 
 # Build 'Set Other Modes' (type='fill')
   lui $at, 0x2F30
-  sw $at, 0x8($0)
-  sw $0, 0xC($0)
+  sw $at, 0x108($0)
+  sw $0, 0x10C($0)
 
 # Build 'Set Color Image' (size=2, width=320, origin=0x200000)
   lui $at, 0x3F10
   ori $at, $at, 0x013F
-  sw $at, 0x10($0)
+  sw $at, 0x110($0)
   lui $at, 0x0020
-  sw $at, 0x14($0)
+  sw $at, 0x114($0)
 
 # Build 'Set Fill Color' (color=0xf000f000)
   lui $at, 0x3700
-  sw $at, 0x18($0)
+  sw $at, 0x118($0)
   lui $at, 0x0F00
   ori $at, $at, 0x0F00
-  sw $at, 0x1C($0)
+  sw $at, 0x11C($0)
 
 # Build 'Fill Rectangle' (xl=240.0, yl=200.0, xh=80.0, yh=120.0)
-  lui $at, 0x363C
-  ori $at, $at, 0x0320
-  sw $at, 0x20($0)
-  lui $at, 0x0014
-  ori $at, $at, 0x01E0
-  sw $at, 0x24($0)
+  lui $at, 0x3600
+
+  lui $at, 0x3600
+  lw $2, 0x8($0)
+  sll $2, $2, 0xE
+  or $at, $at, $2
+  lw $2, 0xC($0)
+  sll $2, $2, 0x2
+  or $at, $at, $2
+  sw $at, 0x120($0)
+
+  lw $2, 0x0($0)
+  sll $2, $2, 0xE
+  lw $at, 0x4($0)
+  sll $at, $at, 0x2
+  or $at, $at, $2
+  sw $at, 0x124($0)
+
+  #lui $at, 0x363C
+  #ori $at, $at, 0x0320
+  #sw $at, 0x120($0)
+  #lui $at, 0x0014
+  #ori $at, $at, 0x01E0
+  #sw $at, 0x124($0)
 
 # Build 'Sync Pipe'
   lui $at, 0x2700
-  sw $at, 0x28($0)
-  sw $0, 0x2C($0)
+  sw $at, 0x128($0)
+  sw $0, 0x12C($0)
 
 # Build 'Sync Full'
   lui $at, 0x2900
-  sw $at, 0x30($0)
-  sw $0, 0x34($0)
+  sw $at, 0x130($0)
+  sw $0, 0x134($0)
 
 # Send command to RDP over XBUS.
   lui $at, 0x0400
+  ori $at, $at, 0x100
   mtc0 $at, CMD_START
-  ori $at, $at, 0x38
+  ori $at, $at, 0x138
   mtc0 $at, CMD_END
 
 # Raise an interrupt; we're done.
