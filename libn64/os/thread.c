@@ -65,6 +65,8 @@ libn64_thread libn64_thread_early_init(uint32_t kernel_sp) {
     "mtc0 $at, $10\n\t"
     "addiu $at, $zero, 0x401\n\t"
     "mtc0 $at, $12\n\t"
+    ".set reorder\n\t"
+    ".set at\n\t"
 
     :: "r"(self)
     : "memory"
