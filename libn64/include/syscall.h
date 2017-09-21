@@ -244,7 +244,7 @@ static inline uint32_t libn64_recv_message(void) {
   return rv;
 }
 
-// Blocks until a message is received; returns message and ata.
+// Blocks until a message is received; returns message and data.
 libn64func __attribute__((always_inline))
 static inline uint64_t libn64_recv_message1(uint32_t *param) {
   register uint32_t rv __asm__("$v0");
