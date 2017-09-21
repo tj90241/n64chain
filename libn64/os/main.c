@@ -25,10 +25,7 @@ void libn64_main(uint32_t kernel_sp, uint32_t bss_end) {
   // Put the given physical memory region under control of the MM.
   libn64_mm_init(bss_end, kernel_sp - 256);
 
-  // Hand control over to the application (in another thread).
-  libn64_thread_create(main, NULL, LIBN64_THREAD_MIN_PRIORITY + 1);
-
-  // This thread becomes the idle thread.
+  // This thread invokes main() and becomes the idle thread.
   libn64_idle_thread();
   __builtin_unreachable();
 }

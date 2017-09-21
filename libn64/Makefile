@@ -29,13 +29,13 @@ ASMFILES = $(call FIXPATH,\
 	os/asm/boot.s \
 	os/asm/context.s \
 	os/asm/exception.s \
+	os/asm/idle_thread.s \
 	os/asm/message.s \
 	os/asm/syscall.s \
 )
 
 CFILES = $(call FIXPATH,\
 	os/fbtext.c \
-	os/idle_thread.c \
 	os/main.c \
 	os/mm.c \
 	os/panic.c \
