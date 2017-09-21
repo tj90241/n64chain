@@ -22,8 +22,30 @@ libn64func __attribute__((noreturn))
 void libn64_main(uint32_t kernel_sp, uint32_t bss_end) {
   libn64_thread_early_init(kernel_sp);
 
-  // Put the given physical memory region under control of the MM.
-  libn64_mm_init(bss_end, kernel_sp - 256);
+  // Give libn64 the minimum amount of memory allowable (~24KiB)
+  // right above the thread table (at the top of RAM).
+  //
+  // 4/8MiB -----------------+
+  //   |                     |
+  //   | libn64 thread block |  <- ~512b/thread
+  //   |_____________________|
+  //   |                     |
+  //   |     libn64 heap     |  <- 24kiB
+  //   |                     |
+  //   +---------------------+
+  //   |                     |
+  //   |       (free)        |  <- RDRAM - (32KiB - thread space)
+  //   |_____________________|
+  //   |                     |
+  //   |    libn64 kernel    |  <- 8KiB
+  //   |                     |
+  // 0 MiB-------------------+
+  //
+  //
+  // The user can grow this themselves if they want more memory.
+  // This is kind of "dangerous" in the sense that we allocate
+  // pages on top of our active stack, but it's fine for now...
+  libn64_mm_init(kernel_sp - 4096 * 6, kernel_sp);
 
   // This thread invokes main() and becomes the idle thread.
   libn64_idle_thread();
