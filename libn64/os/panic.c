@@ -8,8 +8,8 @@
 // 'LICENSE', which is part of this source code package.
 //
 
-#include <fbtext.h>
 #include <libn64.h>
+#include <os/fbtext.h>
 #include <os/panic.h>
 #include <rcp/vi.h>
 

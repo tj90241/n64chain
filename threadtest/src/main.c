@@ -8,7 +8,6 @@
 // 'LICENSE', which is part of this source code package.
 //
 
-#include <fbtext.h>
 #include <rcp/vi.h>
 #include <stdint.h>
 #include <syscall.h>
@@ -33,7 +32,6 @@ static vi_state_t vi_state = {
   0x00000400, // y_scale
 };
 
-struct libn64_fbtext_context fbtext;
 uint32_t fb_origin;
 
 // Flip to the next page, clear the framebuffer.
@@ -157,32 +155,6 @@ void main(void *unused __attribute__((unused))) {
       box_anim_thread, &args, 2);
 
     libn64_thread_reg_intr(box_thr, LIBN64_INTERRUPT_VI);
-  }
-
-  // Update the 'Running...' animation.
-  libn64_thread_reg_intr(libn64_thread_self(), LIBN64_INTERRUPT_VI);
-
-  libn64_fbtext_init(&fbtext, 0x200000, LIBN64_FBTEXT_COLOR_WHITE,
-      LIBN64_FBTEXT_COLOR_BLACK, 0x140, LIBN64_FBTEXT_16BPP);
-
-  unsigned cur_frames = 1;
-
-  while (1) {
-    fbtext.x = fbtext.y = 1;
-    fbtext.fb_origin = 0x80000000 | vi_state.origin;
-    libn64_fbtext_puts(&fbtext, " Running");
-
-    for (i = 0; i < cur_frames / 60 + 1; i++)
-      libn64_fbtext_puts(&fbtext, ".");
-
-    for (; i < 3; i++)
-      libn64_fbtext_puts(&fbtext, " ");
-
-    cur_frames++;
-    if (cur_frames >= 240)
-      cur_frames = 1;
-
-    libn64_recv_message();
   }
 }
 

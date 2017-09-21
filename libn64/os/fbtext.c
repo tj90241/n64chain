@@ -8,8 +8,8 @@
 // 'LICENSE', which is part of this source code package.
 //
 
-#include <fbtext.h>
 #include <libn64.h>
+#include <os/fbtext.h>
 #include <stdint.h>
 
 // Methods for rendering a character to a 16 or 32-bit RGBA framebuffer.
@@ -168,6 +168,7 @@ unsigned libn64_fbchar16(const struct libn64_fbtext_context *context,
   return 1;
 }
 
+#ifdef LIBN64_FBTEXT_32BPP
 unsigned libn64_fbchar32(const struct libn64_fbtext_context *context,
     uint32_t fb_address, char c) {
   const uint32_t *font = get_font_data(c);
@@ -205,6 +206,7 @@ unsigned libn64_fbchar32(const struct libn64_fbtext_context *context,
 
   return 2;
 }
+#endif
 
 void libn64_fbtext_init(struct libn64_fbtext_context *context,
     uint32_t fb_origin, uint32_t fg_color, uint32_t bg_color,
