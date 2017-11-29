@@ -106,6 +106,7 @@ libn64_init_pi_wait:
 # Clear BSS; leave it in the cache in case libn64_main needs it.
   la $at, __bss_start
   addiu $a1, $v0, -0xC00
+  beql $at, $a1, libn64_init_bss_clear_skip
 
 libn64_init_bss_clear:
   cache 0xD, 0x0($at)
@@ -116,6 +117,7 @@ libn64_init_bss_clear:
 
 # Write out the address of the thread table (it's above the stack).
 # Done from the ASM side of things; off to C to continue init'ing.
+libn64_init_bss_clear_skip:
   lui $at,0x8000
   sw $sp, 0x420($at)
 
