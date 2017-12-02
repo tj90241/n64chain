@@ -40,6 +40,7 @@ CFILES = $(call FIXPATH,\
 	os/mm.c \
 	os/panic.c \
 	os/thread.c \
+	os/time.c \
 	rcp/vi.c \
 )
 
@@ -63,7 +64,7 @@ libn64.a: $(OBJFILES)
 	@echo $(call FIXPATH,"Assembling: libn64/$<")
 	@$(CC) -x assembler-with-cpp $(CFLAGS) $(OPTFLAGS) -MMD -c $< -o $@
 
-%.o: %.c
+%.o: %.c include/syscall.h
 	@echo $(call FIXPATH,"Compiling: libn64/$<")
 	@$(CC) $(CFLAGS) $(OPTFLAGS) -MMD -c $< -o $@
 

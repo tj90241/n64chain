@@ -118,7 +118,7 @@ libn64_syscall_thread_create_start_new:
   lw $a0, 0x01C($k1)
   mtc0 $a1, $14
 
-  addiu $at, $zero, 0x403
+  xori $at, $zero, 0x8403
   mtc0 $at, $12
   srl $at, $k1, 0x9
   andi $at, $at, 0xFF
@@ -355,6 +355,45 @@ libn64_syscall_page_free:
 .size libn64_syscall_page_free,.-libn64_syscall_page_free
 
 # -------------------------------------------------------------------
+#  libn64::time
+#
+#  TODO: Preserve HI and LO registers.
+# -------------------------------------------------------------------
+.type libn64_syscall_time, @function
+.align 5
+libn64_syscall_time:
+  lui $k0, 0x8000
+  ld $k0, 0x448($k0)
+  mtc0 $k1, $14
+  dmfc0 $k1, $9
+  or $k0, $k0, $k1
+
+  # 62,500,000 * 1.5 / 2 = 46,875,000 ticks per second.
+  lui $k1, 0x02CB
+  ori $k1, 0x4178
+  ddivu $k0, $k1
+
+  # tv_sec is the result of the div. Compute tv_usec next.
+  mflo $v0 # div result -> tv_sec
+  mfhi $v1 # mod result * 1e6
+  lui $k0, 0x000F
+  ori $k0, 0x4240
+  multu $v1, $k0 
+
+  mfhi $v1
+  mflo $k0
+  dsll32 $k0, $k0, 0
+  dsll32 $v1, $v1, 0
+  dsrl32 $k0, $k0, 0
+  or $v1, $v1, $k0
+  ddivu $v1, $k1
+  mflo $v1
+  nop
+  eret
+
+.size libn64_syscall_time,.-libn64_syscall_time
+
+# -------------------------------------------------------------------
 #  libn64::send_message
 #    $a0 = recipient
 #    $a1 = message
@@ -441,6 +480,7 @@ libn64_syscall_table:
 .long libn64_syscall_thread_unreg_intr
 .long libn64_syscall_page_alloc
 .long libn64_syscall_page_free
+.long libn64_syscall_time
 .long libn64_syscall_send_message
 .long libn64_syscall_recv_message
 

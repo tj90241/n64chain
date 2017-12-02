@@ -19,13 +19,15 @@
 #define LIBN64_SYSCALL_THREAD_UNREG_INTR 4
 #define LIBN64_SYSCALL_PAGE_ALLOC        5
 #define LIBN64_SYSCALL_PAGE_FREE         6
+#define LIBN64_SYSCALL_TIME              7
 
-#define LIBN64_SYSCALL_SEND_MESSAGE      7
-#define LIBN64_SYSCALL_RECV_MESSAGE      8
-#define LIBN64_SYSCALL_INVALID           9
+#define LIBN64_SYSCALL_SEND_MESSAGE      8
+#define LIBN64_SYSCALL_RECV_MESSAGE      9
+#define LIBN64_SYSCALL_INVALID           10
 
 #ifndef __ASSEMBLER__
 #include <stdint.h>
+#include <time.h>
 
 enum libn64_interrupt {
   LIBN64_INTERRUPT_AI = 0x430,
@@ -180,6 +182,31 @@ static inline void libn64_page_free(void *p) {
     :: "r" (a0), "K" (LIBN64_SYSCALL_PAGE_FREE)
     : "memory"
   );
+}
+
+// Returns a timeval struct corresponding to the time elapsed since boot.
+libn64func __attribute__((always_inline))
+static inline struct timeval libn64_time(void) {
+  struct timeval time;
+  register uint32_t v0 __asm__("$v0");
+  register uint32_t v1 __asm__("$v1");
+
+  __asm__ __volatile__(
+    ".set noreorder\n\t"
+    ".set noat\n\t"
+    "li $at, %2\n\t"
+    "syscall\n\t"
+    ".set reorder\n\t"
+    ".set at\n\t"
+
+    : "=r" (v0), "=r" (v1)
+    : "K" (LIBN64_SYSCALL_TIME)
+    : "memory"
+  );
+
+  time.tv_sec = v0;
+  time.tv_usec = v1;
+  return time;
 }
 
 // Sends a message with no parameter values to the specified thread.

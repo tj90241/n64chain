@@ -296,9 +296,7 @@ libn64_exception_handler_interrupt:
   bne $k1, $zero, libn64_exception_handler_rcp_interrupt
   andi $k1, $k0, 0x8000
   bne $k1, $zero, libn64_exception_handler_timer_interrupt
-  andi $k1, $k0, 0x0800
-  beql $k1, $zero, libn64_panic
-  addu $k0, $zero, $zero
+  nop
 
 # We got an unexpected interrupt. Since we don't know how to handle it, panic.
 # Currently, this will happen for software interrupts and the Indy debugger-
@@ -307,12 +305,15 @@ libn64_exception_handler_64dd_interrupt:
   j libn64_panic
   addu $k0, $zero, $zero
 
-# A timer interrupt occurred. Bounce the compare register to silence it.
-# In the future, we probably want to pump a message out on a message queue
-# or something here to acknowledge that a timer interrupt occurred.
+# A timer interrupt occurred. Bounce the compare register to silence it
+# and increment the "rollover" counter that we use to track time.
 libn64_exception_handler_timer_interrupt:
-  mfc1 $k1, $11
-  mtc1 $k1, $11
+  mfc0 $k1, $11
+  mtc0 $k1, $11
+  lui $k0, 0x8000
+  lw $k1, 0x448($k0)
+  addiu $k1, $k1, 0x1
+  sw $k1, 0x448($k0)
   eret
 
 # Handle a RCP interrupt: pump messages out to the listeners.

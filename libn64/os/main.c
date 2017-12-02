@@ -12,6 +12,7 @@
 #include <os/idle_thread.h>
 #include <os/mm.h>
 #include <os/thread.h>
+#include <os/time.h>
 #include <stddef.h>
 #include <syscall.h>
 
@@ -20,6 +21,9 @@ void main(void *);
 // Entry point (invoked from IPL handler).
 libn64func __attribute__((noreturn))
 void libn64_main(uint32_t kernel_sp, uint32_t bss_end) {
+
+  // Initialize critical subsystems.
+  libn64_time_init();
   libn64_thread_early_init(kernel_sp);
 
   // Give libn64 the minimum amount of memory allowable (~24KiB)
