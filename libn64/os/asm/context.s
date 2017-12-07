@@ -300,7 +300,7 @@ libn64_context_save_fpu_loop:
   cfc1 $v0, $31
   sdc1 $16, 0x0D0($k1)
   sdc1 $18, 0x0D8($k1)
-  sw $v0, 0x088($v1)
+  sw $v0, 0x088($k1)
   sdc1 $20, 0x0E0($k1)
   sdc1 $22, 0x0E8($k1)
   sdc1 $24, 0x0F0($k1)
