@@ -29,9 +29,9 @@ RSPASM = $(call FIXPATH,$(CURDIR)/../tools/bin/rspasm)
 
 CFLAGS = -Wall -Wextra -pedantic -std=c99 -Wno-main \
 	-I../libn64/include -I../libn64 -I.
-OPTFLAGS = -Os -march=vr4300 -mabi=eabi -mgp32 -mlong32 \
+OPTFLAGS = -Os -march=vr4300 -mtune=vr4300 -mabi=eabi -mgp32 -mlong32 \
 	-flto -ffat-lto-objects -ffunction-sections -fdata-sections \
-	-G4 -mno-extern-sdata -mgpopt
+	-G4 -mno-extern-sdata -mgpopt -mfix4300 -mbranch-likely
 
 ASMFILES = $(call FIXPATH,\
 )

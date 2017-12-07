@@ -21,9 +21,9 @@ AR = $(call FIXPATH,$(CURDIR)/../tools/bin/mips64-elf-gcc-ar)
 CC = $(call FIXPATH,$(CURDIR)/../tools/bin/mips64-elf-gcc)
 
 CFLAGS = -Wall -Wextra -pedantic -std=c99 -I. -Iinclude -Ipriv_include
-OPTFLAGS = -Os -march=vr4300 -mabi=eabi -mgp32 -mlong32 \
+OPTFLAGS = -Os -march=vr4300 -mtune=vr4300 -mabi=eabi -mgp32 -mlong32 \
 	-flto -ffat-lto-objects -ffunction-sections -fdata-sections \
-	-G4 -mno-extern-sdata -mgpopt
+	-G4 -mno-extern-sdata -mgpopt -mfix4300 -mbranch-likely
 
 ASMFILES = $(call FIXPATH,\
 	os/asm/boot.s \
