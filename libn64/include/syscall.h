@@ -8,8 +8,8 @@
 // 'LICENSE', which is part of this source code package.
 //
 
-#ifndef LIBN64_INCLUDE_OS_SYSCALL_H
-#define LIBN64_INCLUDE_OS_SYSCALL_H
+#ifndef LIBN64_INCLUDE_SYSCALL_H
+#define LIBN64_INCLUDE_SYSCALL_H
 
 // Syscall numbers.
 #define LIBN64_SYSCALL_THREAD_CREATE     0
@@ -285,7 +285,7 @@ static inline uint64_t libn64_recv_message1(uint32_t *param) {
     ".set reorder\n\t"
     ".set at\n\t"
 
-    : "=r" (rv), "=r"(data)
+    : "=r" (rv), "=r" (data)
     : "K" (LIBN64_SYSCALL_RECV_MESSAGE)
   );
 

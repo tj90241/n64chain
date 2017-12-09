@@ -12,7 +12,7 @@ set -eu
 #
 
 BINUTILS="ftp://ftp.gnu.org/gnu/binutils/binutils-2.29.tar.bz2"
-GCC="ftp://ftp.gnu.org/gnu/gcc/gcc-7.2.0/gcc-7.2.0.tar.bz2"
+GCC="ftp://ftp.gnu.org/gnu/gcc/gcc-7.2.0/gcc-7.2.0.tar.gz"
 MAKE="ftp://ftp.gnu.org/gnu/make/make-4.2.1.tar.bz2"
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -66,6 +66,8 @@ if [ ! -f stamps/binutils-install ]; then
 
   touch stamps/binutils-install
 fi
+
+exit 0
 
 if [ ! -f stamps/gcc-download ]; then
   wget "${GCC}" -O "tarballs/$(basename ${GCC})"
@@ -180,6 +182,12 @@ if [ ! -f stamps/checksum-build ]; then
   cc -Wall -Wextra -pedantic -std=c99 -static -O2 checksum.c -o bin/checksum
 
   touch stamps/checksum-build
+fi
+
+if [ ! -f stamps/mkfs-build ]; then
+  cc -Wall -Wextra -pedantic -std=c99 -static -O2 mkfs.c -o bin/mkfs
+
+  touch stamps/mkfs-build
 fi
 
 if [ ! -f stamps/rspasm-build ]; then

@@ -136,8 +136,6 @@ SECTIONS {
     *(.cart.libn64.*)
   }
 
-  /* TEXT */
-
   /* Everything is statically linked, so discard PLTs. */
   /DISCARD/ : { *(.rel.iplt) *(.rela.iplt) *(.rel.plt) *(.rela.plt) *(.plt) *(.iplt) }
 
