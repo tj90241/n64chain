@@ -11,8 +11,8 @@ set -eu
 # 'LICENSE', which is part of this source code package.
 #
 
-BINUTILS="ftp://ftp.gnu.org/gnu/binutils/binutils-2.28.tar.bz2"
-GCC="ftp://ftp.gnu.org/gnu/gcc/gcc-7.1.0/gcc-7.1.0.tar.bz2"
+BINUTILS="ftp://ftp.gnu.org/gnu/binutils/binutils-2.29.tar.bz2"
+GCC="ftp://ftp.gnu.org/gnu/gcc/gcc-7.2.0/gcc-7.2.0.tar.bz2"
 MAKE="ftp://ftp.gnu.org/gnu/make/make-4.2.1.tar.bz2"
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -39,11 +39,12 @@ if [ ! -f stamps/binutils-configure ]; then
     --target=mips64-elf --with-arch=vr4300 \
     --enable-64-bit-bfd \
     --enable-plugins \
-    --enable-static \
+    --enable-shared \
     --disable-gold \
     --disable-multilib \
     --disable-nls \
-    --disable-shared \
+    --disable-rpath \
+    --disable-static \
     --disable-werror
   popd
 
@@ -86,6 +87,8 @@ if [ ! -f stamps/gcc-configure ]; then
     --with-gnu-as=${SCRIPT_DIR}/bin/mips64-elf-as \
     --with-gnu-ld=${SCRIPT_DIR}/bin/mips64-elf-ld \
     --enable-checking=release \
+    --enable-shared \
+    --enable-shared-libgcc \
     --disable-decimal-float \
     --disable-gold \
     --disable-libatomic \
@@ -99,7 +102,8 @@ if [ ! -f stamps/gcc-configure ]; then
     --disable-libvtv \
     --disable-multilib \
     --disable-nls \
-    --disable-shared \
+    --disable-rpath \
+    --disable-static \
     --disable-threads \
     --disable-win32-registry \
     --enable-lto \

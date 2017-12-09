@@ -11,12 +11,12 @@ set -eu
 # 'LICENSE', which is part of this source code package.
 #
 
-BINUTILS="ftp://ftp.gnu.org/gnu/binutils/binutils-2.28.tar.bz2"
-GCC="ftp://ftp.gnu.org/gnu/gcc/gcc-7.1.0/gcc-7.1.0.tar.bz2"
+BINUTILS="ftp://ftp.gnu.org/gnu/binutils/binutils-2.29.tar.bz2"
+GCC="ftp://ftp.gnu.org/gnu/gcc/gcc-7.2.0/gcc-7.2.0.tar.bz2"
 GMP="ftp://ftp.gnu.org/gnu/gmp/gmp-6.1.2.tar.bz2"
 MAKE="ftp://ftp.gnu.org/gnu/make/make-4.2.1.tar.bz2"
 MPC="ftp://ftp.gnu.org/gnu/mpc/mpc-1.0.3.tar.gz"
-MPFR="ftp://ftp.gnu.org/gnu/mpfr/mpfr-3.1.5.tar.bz2"
+MPFR="ftp://ftp.gnu.org/gnu/mpfr/mpfr-3.1.6.tar.bz2"
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd ${SCRIPT_DIR} && mkdir -p {stamps,tarballs}
@@ -44,11 +44,12 @@ if [ ! -f stamps/binutils-configure ]; then
     --target=mips64-elf --with-arch=vr4300 \
     --enable-64-bit-bfd \
     --enable-plugins \
-    --enable-static \
+    --enable-shared \
     --disable-gold \
     --disable-multilib \
     --disable-nls \
-    --disable-shared \
+    --disable-rpath \
+    --disable-static \
     --disable-werror
   popd
 
@@ -115,6 +116,11 @@ if [ ! -f stamps/mpc-extract ]; then
   touch stamps/mpc-extract
 fi
 
+if [ ! -f stamps/gcc-patch ]; then
+  patch -Np0 -i gcc-win64-enable-plugins.patch
+  touch stamps/gcc-patch
+fi
+
 if [ ! -f stamps/gcc-configure ]; then
   pushd gcc-build
   ../gcc-source/configure \
@@ -126,6 +132,8 @@ if [ ! -f stamps/gcc-configure ]; then
     --with-gnu-as=${SCRIPT_DIR}/bin/mips64-elf-as.exe \
     --with-gnu-ld=${SCRIPT_DIR}/bin/mips64-elf-ld.exe \
     --enable-checking=release \
+    --enable-shared \
+    --enable-shared-libgcc \
     --disable-decimal-float \
     --disable-gold \
     --disable-libatomic \
@@ -139,12 +147,13 @@ if [ ! -f stamps/gcc-configure ]; then
     --disable-libvtv \
     --disable-multilib \
     --disable-nls \
-    --disable-shared \
+    --disable-rpath \
+    --disable-static \
+    --disable-symvers \
     --disable-threads \
     --disable-win32-registry \
     --enable-lto \
-    --enable-plugin-ld \
-    --enable-static \
+    --enable-plugin \
     --without-included-gettext
   popd
 
