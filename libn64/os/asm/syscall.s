@@ -465,6 +465,66 @@ libn64_recv_message_after_next_update:
 .size libn64_syscall_recv_message,.-libn64_syscall_recv_message
 
 # -------------------------------------------------------------------
+#  libn64::mq_alloc
+# -------------------------------------------------------------------
+.global libn64_syscall_mq_alloc
+.type libn64_syscall_mq_alloc, @function
+.align 5
+libn64_syscall_mq_alloc:
+  mtc0 $k1, $14
+
+libn64_mq_alloc_replay:
+  lui $at, 0x8000
+  lw $v0, 0x424($at)
+  beql $v0, $zero, libn64_send_message_expand_cache
+  mtc0 $ra, $30
+
+  lw $k1, 0x0($v0)
+  sw $k1, 0x424($at)
+  eret
+
+# The message cache is dried up; expand the cache.
+libn64_send_message_expand_cache:
+  jal libn64_exception_handler_allocpage
+  lui $at, 0x8000
+  sll $k0, $k0, 0xC
+  or $k0, $k0, $at
+  sw $k0, 0x424($at)
+  addu $k1, $k0, $zero
+
+libn64_send_message_alloc_loop:
+  addiu $k0, $k0, 0x10
+  cache 0xD, -0x10($k0)
+  xor $at, $k0, $k1
+  andi $at, $at, 0x1000
+  beql $at, $zero, libn64_send_message_alloc_loop
+  sw $k0, -0x10($k0)
+
+# Now that the cache is populated, replay the alloc.
+  sw $zero, -0x10($k0)
+  j libn64_mq_alloc_replay
+  mfc0 $ra, $30
+
+.size libn64_syscall_mq_alloc,.-libn64_syscall_mq_alloc
+
+# -------------------------------------------------------------------
+#  libn64::mq_free
+# -------------------------------------------------------------------
+.global libn64_syscall_mq_free
+.type libn64_syscall_mq_free, @function
+.align 5
+libn64_syscall_mq_free:
+  lui $at, 0x8000
+  lw $k0, 0x424($at)
+  cache 0xD, 0x0($a0)
+  sw $k0, 0x0($a0)
+  mtc0 $k1, $14
+  sw $a0, 0x424($at)
+  eret
+
+.size libn64_syscall_mq_free,.-libn64_syscall_mq_free
+
+# -------------------------------------------------------------------
 #  System call table.
 # -------------------------------------------------------------------
 .section  .rodata
@@ -483,6 +543,8 @@ libn64_syscall_table:
 .long libn64_syscall_time
 .long libn64_syscall_send_message
 .long libn64_syscall_recv_message
+.long libn64_syscall_mq_alloc
+.long libn64_syscall_mq_free
 
 .size libn64_syscall_table,.-libn64_syscall_table
 

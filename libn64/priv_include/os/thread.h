@@ -31,8 +31,8 @@ struct libn64_thread_state {
 struct libn64_thread_internal {
   struct libn64_thread_state state;
 
-  struct message *messages_head;
   struct message *messages_tail;
+  struct message *messages_head;
   uint32_t priority;
   uint32_t blocked;
 

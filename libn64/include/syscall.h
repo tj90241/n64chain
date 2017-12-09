@@ -23,7 +23,9 @@
 
 #define LIBN64_SYSCALL_SEND_MESSAGE      8
 #define LIBN64_SYSCALL_RECV_MESSAGE      9
-#define LIBN64_SYSCALL_INVALID           10
+#define LIBN64_SYSCALL_MQ_ALLOC          10
+#define LIBN64_SYSCALL_MQ_FREE           11
+#define LIBN64_SYSCALL_INVALID           12
 
 #ifndef __ASSEMBLER__
 #include <stdint.h>
@@ -291,6 +293,43 @@ static inline uint64_t libn64_recv_message1(uint32_t *param) {
 
   *param = data;
   return rv;
+}
+
+// Allocates a message (16 bytes) from the message allocator.
+libn64func __attribute__((always_inline))
+static inline void *libn64_mq_alloc(void) {
+  register void *rv __asm__("$v0");
+
+  __asm__ __volatile__(
+    ".set noreorder\n\t"
+    ".set noat\n\t"
+    "li $at, %1\n\t"
+    "syscall\n\t"
+    ".set reorder\n\t"
+    ".set at\n\t"
+
+    : "=r" (rv)
+    : "K" (LIBN64_SYSCALL_MQ_ALLOC)
+  );
+
+  return rv;
+}
+
+// Returns a message to the message allocator.
+libn64func __attribute__((always_inline))
+static inline void libn64_mq_free(void *message) {
+  register void *a0 __asm__("$a0") = message;
+
+  __asm__ __volatile__(
+    ".set noreorder\n\t"
+    ".set noat\n\t"
+    "li $at, %1\n\t"
+    "syscall\n\t"
+    ".set reorder\n\t"
+    ".set at\n\t"
+
+    :: "r" (a0), "K" (LIBN64_SYSCALL_MQ_FREE)
+  );
 }
 
 #endif
