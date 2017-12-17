@@ -87,7 +87,7 @@ void main(void *unused __attribute__((unused))) {
     libn64_fbtext_puts(&context, fs_ptr + text_offset);
 
     // Block until the next VI interrupt comes in.
-    libn64_recv_message();
+    libn64_recvt_message();
   }
 }
 
