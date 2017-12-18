@@ -17,7 +17,10 @@
 typedef void *libn64_thread;
 #endif
 
-#define LIBN64_THREADS_MAX 15
+#define LIBN64_THREADS_MAX         15
+
+#define LIBN64_THREAD_MIN_PRIORITY 0        // Idle threads only
+#define LIBN64_THREAD_MAX_PRIORITY 255      // Kernel threads only
 
 #endif
 

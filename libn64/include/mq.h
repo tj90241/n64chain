@@ -30,6 +30,7 @@ struct libn64_mq {
   void *arg;
 } __attribute__((aligned(16)));
 
+libn64func
 static inline struct libn64_mq *libn64_mq_create(void) {
   void *opaque = libn64_mq_alloc();
   struct libn64_mq *mq = (struct libn64_mq *) opaque;
@@ -40,6 +41,7 @@ static inline struct libn64_mq *libn64_mq_create(void) {
   return mq;
 }
 
+libn64func
 static inline void libn64_mq_destroy(struct libn64_mq *mq) {
   struct libn64_message *message, *next;
 

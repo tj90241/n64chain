@@ -242,10 +242,10 @@ static inline void libn64_sendt_message(libn64_thread thread, uint32_t message) 
 // Sends a message with a parameter value to the specified thread.
 libn64func __attribute__((always_inline))
 static inline void libn64_sendt_message1(
-    libn64_thread thread, uint32_t message, uint32_t param) {
+    libn64_thread thread, uint32_t message, void *param) {
   register libn64_thread a0 __asm__("$a0") = thread;
   register uint32_t a1 __asm__("$a1") = message;
-  register uint32_t a2 __asm__("$a2") = param;
+  register void *a2 __asm__("$a2") = param;
 
   __asm__ __volatile__(
     ".set noreorder\n\t"
@@ -283,9 +283,9 @@ static inline uint32_t libn64_recvt_message(void) {
 
 // Blocks until a message is received; returns message and data.
 libn64func __attribute__((always_inline))
-static inline uint64_t libn64_recvt_message1(uint32_t *param) {
+static inline uint32_t libn64_recvt_message1(void **param) {
   register uint32_t rv __asm__("$v0");
-  register uint32_t data __asm__("$at");
+  register void *data __asm__("$at");
 
   __asm__ __volatile__(
     ".set noreorder\n\t"
@@ -328,10 +328,10 @@ static inline void libn64_send_message(
 // Sends a message with a parameter value to the specified queue.
 libn64func __attribute__((always_inline))
 static inline void libn64_send_message1(
-    struct libn64_mq *mq, uint32_t message, uint32_t param) {
+    struct libn64_mq *mq, uint32_t message, void *param) {
   register struct libn64_mq *a0 __asm__("$a0") = mq;
   register uint32_t a1 __asm__("$a1") = message;
-  register uint32_t a2 __asm__("$a2") = param;
+  register void *a2 __asm__("$a2") = param;
 
   __asm__ __volatile__(
     ".set noreorder\n\t"
@@ -374,11 +374,11 @@ static inline uint32_t libn64_recv_message(
 // Blocks until a message is received; returns message and data.
 // If not blocking and no msgs are queued, returns LIBN64_NOMSGS.
 libn64func __attribute__((always_inline))
-static inline uint64_t libn64_recv_message1(
-    struct libn64_mq *mq, uint32_t flags, uint32_t *param) {
+static inline uint32_t libn64_recv_message1(
+    struct libn64_mq *mq, uint32_t flags, void **param) {
   register struct libn64_mq *a0 __asm__("$a0") = mq;
   register uint32_t a1 __asm__("$a1") = flags;
-  register uint32_t data __asm__("$at");
+  register void *data __asm__("$at");
   register uint32_t rv __asm__("$v0");
 
   __asm__ __volatile__(

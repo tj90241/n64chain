@@ -128,7 +128,6 @@ libn64_syscall_thread_create_start_new:
 
 # If the thread returns, route it to libn64_thread_exit.
   la $ra, libn64_thread_exit
-  sw $k0, 0x08C($k1)
   eret
 
 .size libn64_syscall_thread_create,.-libn64_syscall_thread_create

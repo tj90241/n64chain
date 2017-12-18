@@ -9,6 +9,8 @@
 //
 
 #include <filesystem.h>
+#include <io.h>
+#include <mq.h>
 #include <os/fbtext.h>
 #include <rcp/vi.h>
 #include <stdint.h>
@@ -37,6 +39,26 @@ static uint32_t fb_origin;
 
 void main(void *unused __attribute__((unused))) {
   struct libn64_fbtext_context context;
+
+  // Below is an example of how to load the "Hello, world" resource off
+  // the cart by submitting an I/O request and blocking until completion.
+  struct libn64_mq *mq = libn64_mq_create();
+  struct libn64_io_request *req = (struct libn64_io_request *)
+      libn64_mq_alloc();
+
+  libn64_io_pack_request(req, mq, 0x100000, // @ 1MB
+      CART_OFFS_DATA_TXT, CART_SIZE_DATA_TXT);
+
+  libn64_io_submit(LIBN64_IO_CMD_CART2RAM, req);
+  libn64_recv_message(mq, LIBN64_BLOCK);
+
+  libn64_mq_free(req);
+  libn64_mq_destroy(mq);
+
+  // The PI copied the data to RDRAM; we need to invalidate the cache
+  // line that may currently be holding a stale copy of our data.
+  void *text_ptr = (void *) 0x80100000;
+  __builtin_mips_cache(0x11, text_ptr);
 
   // Setup the OS's private/hidden text rendering engine.
   // The 0 and ~0 are just fill colors (black and white).
@@ -81,10 +103,7 @@ void main(void *unused __attribute__((unused))) {
     context.y = 6;
 
     // Finally, render text where the cursor is placed.
-    extern char _binary_filesystem_bin_start;
-    uint32_t text_offset = CART_OFFS_DATA_TXT - 0x1000;
-    char *fs_ptr = &_binary_filesystem_bin_start;
-    libn64_fbtext_puts(&context, fs_ptr + text_offset);
+    libn64_fbtext_puts(&context, text_ptr);
 
     // Block until the next VI interrupt comes in.
     libn64_recvt_message();

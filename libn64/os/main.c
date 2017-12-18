@@ -9,6 +9,7 @@
 //
 
 #include <libn64.h>
+#include <io/thread.h>
 #include <os/idle_thread.h>
 #include <os/mm.h>
 #include <os/thread.h>
@@ -34,7 +35,7 @@ void libn64_main(uint32_t kernel_sp, uint32_t bss_end) {
   //   | libn64 thread block |  <- ~512b/thread
   //   |_____________________|
   //   |                     |
-  //   |     libn64 heap     |  <- 24kiB
+  //   |     libn64 heap     |  <- 32kiB
   //   |                     |
   //   +---------------------+
   //   |                     |
@@ -49,7 +50,10 @@ void libn64_main(uint32_t kernel_sp, uint32_t bss_end) {
   // The user can grow this themselves if they want more memory.
   // This is kind of "dangerous" in the sense that we allocate
   // pages on top of our active stack, but it's fine for now...
-  libn64_mm_init(kernel_sp - 4096 * 6, kernel_sp);
+  libn64_mm_init(kernel_sp - 4096 * 8, kernel_sp);
+
+  // Kickoff the IO engine.
+  libn64_io_init();
 
   // This thread invokes main() and becomes the idle thread.
   libn64_idle_thread();

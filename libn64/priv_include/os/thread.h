@@ -15,8 +15,6 @@
 #include <mq.h>
 #include <stdint.h>
 
-#define LIBN64_THREAD_MIN_PRIORITY 0
-
 struct libn64_thread_state {
   uint32_t regs[32];
 

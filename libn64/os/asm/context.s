@@ -45,14 +45,14 @@ libn64_block_thread:
 .align 5
 libn64_maybe_unblock_thread:
   lw $k0, 0x80($a0)
-  lw $at, 0x198($k1)
-  andi $k1, $k0, 0x8000
-  beq $k1, $zero, libn64_unblock_eret
-  xori $k1, $k0, 0x8000
+  andi $at, $k0, 0x8000
+  beq $at, $zero, libn64_unblock_eret
+  xori $at, $k0, 0x8000
 
 libn64_unblock_thread:
   lw $k0, 0x198($a0)
-  sw $k1, 0x80($a0)
+  sw $at, 0x80($a0)
+  lw $at, 0x198($k1)
   subu $at, $at, $k0
   la $k0, libn64_unblock_hp_thread
   bltz $at, libn64_context_save
