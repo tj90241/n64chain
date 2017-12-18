@@ -394,24 +394,96 @@ libn64_syscall_time:
 .size libn64_syscall_time,.-libn64_syscall_time
 
 # -------------------------------------------------------------------
-#  libn64::send_message
+#  libn64::sendt_message
 #    $a0 = recipient
 #    $a1 = message
 #    $a2 = param
 # -------------------------------------------------------------------
-.type libn64_syscall_send_message, @function
+.type libn64_syscall_sendt_message, @function
 .align 5
-libn64_syscall_send_message:
+libn64_syscall_sendt_message:
   mtc0 $ra, $30
   jal libn64_send_message
   mtc0 $k1, $14
 
 # Check to see if we unblocked a higher priority thread.
+libn64_sendt_message_unblock:
   lui $at, 0x8000
   lw $at, 0x420($at)
   mfc0 $ra, $30
   j libn64_maybe_unblock_thread
   lw $k1, 0x8($at)
+
+.size libn64_syscall_sendt_message,.-libn64_syscall_sendt_message
+
+# -------------------------------------------------------------------
+#  libn64::recvt_message
+# -------------------------------------------------------------------
+.global libn64_syscall_recvt_message
+.type libn64_syscall_recvt_message, @function
+.align 5
+libn64_syscall_recvt_message:
+  mtc0 $k1, $14
+  addiu $v0, $k0, 0x8
+
+libn64_recvt_replay:
+  lui $k1, 0x8000
+  lw $k1, 0x420($k1)
+  lw $k1, 0x8($k1)
+  lw $at, 0x194($k1)
+
+# If there is > 1 message available, extract it from the queue.
+libn64_recvt_message_block:
+  bnel $at, $zero, libn64_recvt_message_deque
+  lw $k0, 0x0($at)
+
+# No messages are available; set the thread's unblock return
+# to this syscall, deque it, and schedule the next thread.
+  la $k0, libn64_block_thread
+  j libn64_context_save
+  mtc0 $v0, $30
+
+# Deque the message at the head/front of the message queue.
+# If the message has a successor, make it the new queue head.
+# If there is no successor, then there is no tail; update it.
+libn64_recvt_message_deque:
+  sw $k0, 0x194($k1)
+  bnel $k0, $zero, libn64_recvt_message_after_next_update
+  sw $zero, 0x4($k0)
+  sw $zero, 0x190($k1)
+
+# Return the freed message to the message cache.
+# Return the contents of the message to the caller.
+libn64_recvt_message_after_next_update:
+  lui $k1, 0x8000
+  lw $k0, 0x424($k1)
+
+  lw $v0, 0x8($at)
+  sw $k0, 0x0($at)
+  sw $at, 0x424($k1)
+  lw $at, 0xC($at)
+
+  eret
+
+.size libn64_syscall_recvt_message,.-libn64_syscall_recvt_message
+
+# -------------------------------------------------------------------
+#  libn64::send_message
+# -------------------------------------------------------------------
+.global libn64_syscall_send_message
+.type libn64_syscall_send_message, @function
+.align 5
+libn64_syscall_send_message:
+  mtc0 $ra, $30
+  addiu $a0, $a0, -0x190
+  jal libn64_send_message
+  mtc0 $k1, $14
+
+# Check to see if we unblocked a higher priority thread.
+  lw $a0, 0x198($a0)
+  bne $a0, $zero, libn64_sendt_message_unblock
+  mfc0 $ra, $30
+  eret
 
 .size libn64_syscall_send_message,.-libn64_syscall_send_message
 
@@ -423,46 +495,92 @@ libn64_syscall_send_message:
 .align 5
 libn64_syscall_recv_message:
   mtc0 $k1, $14
-  lui $k1, 0x8000
-  lw $k1, 0x420($k1)
-  lw $k1, 0x8($k1)
-  lw $at, 0x194($k1)
+  addiu $k0, $k0, 0xC
 
-# If there are no messages available, block the thread.
+libn64_recv_replay:
+  lw $at, 0x4($a0)
+
+# If there is > 1 message available, extract it from the queue.
 libn64_recv_message_block:
-  bnel $at, $zero, libn64_recv_message_deque
+  beq $at, $zero, libn64_recv_maybe_block_thread
+  addiu $k1, $a0, -0x190
+  j libn64_recvt_message_deque
   lw $k0, 0x0($at)
 
 # No messages are available; set the thread's unblock return
 # to this syscall, deque it, and schedule the next thread.
-  addu $at, $k0, 0x4
-  la $k0, libn64_block_thread
-  j libn64_context_save
-  mtc0 $at, $30
-
-# Deque the message at the head/front of the message queue.
-# If the message has a successor, make it the new queue head.
-# If there is no successor, then there is no tail; update it.
-libn64_recv_message_deque:
-  sw $k0, 0x194($k1)
-  bnel $k0, $zero, libn64_recv_message_after_next_update
-  sw $zero, 0x4($k0)
-  sw $zero, 0x190($k1)
-
-# Return the freed message to the message cache.
-# Return the contents of the message to the caller.
-libn64_recv_message_after_next_update:
-  lui $k1, 0x8000
-  lw $k0, 0x424($k1)
-
-  lw $v0, 0x8($at)
-  sw $k0, 0x0($at)
-  sw $at, 0x424($k1)
-  lw $at, 0xC($at)
-
+libn64_recv_maybe_block_thread:
+  bgezl $a1, libn64_recv_block_thread
+  lw $k1, 0x8($a0)
+  lui $v0, 0x8000
   eret
 
+libn64_recv_block_thread:
+  la $k0, libn64_block_thread
+  j libn64_context_save
+  mtc0 $k0, $30
+
 .size libn64_syscall_recv_message,.-libn64_syscall_recv_message
+
+# -------------------------------------------------------------------
+#  libn64::mq_alloc
+# -------------------------------------------------------------------
+.global libn64_syscall_mq_alloc
+.type libn64_syscall_mq_alloc, @function
+.align 5
+libn64_syscall_mq_alloc:
+  mtc0 $k1, $14
+
+libn64_mq_alloc_replay:
+  lui $at, 0x8000
+  lw $v0, 0x424($at)
+  beql $v0, $zero, libn64_sendt_message_expand_cache
+  mtc0 $ra, $30
+
+  lw $k1, 0x0($v0)
+  sw $k1, 0x424($at)
+  eret
+
+# The message cache is dried up; expand the cache.
+libn64_sendt_message_expand_cache:
+  jal libn64_exception_handler_allocpage
+  lui $at, 0x8000
+  sll $k0, $k0, 0xC
+  or $k0, $k0, $at
+  sw $k0, 0x424($at)
+  addu $k1, $k0, $zero
+
+libn64_sendt_message_alloc_loop:
+  addiu $k0, $k0, 0x10
+  cache 0xD, -0x10($k0)
+  xor $at, $k0, $k1
+  andi $at, $at, 0x1000
+  beql $at, $zero, libn64_sendt_message_alloc_loop
+  sw $k0, -0x10($k0)
+
+# Now that the cache is populated, replay the alloc.
+  sw $zero, -0x10($k0)
+  j libn64_mq_alloc_replay
+  mfc0 $ra, $30
+
+.size libn64_syscall_mq_alloc,.-libn64_syscall_mq_alloc
+
+# -------------------------------------------------------------------
+#  libn64::mq_free
+# -------------------------------------------------------------------
+.global libn64_syscall_mq_free
+.type libn64_syscall_mq_free, @function
+.align 5
+libn64_syscall_mq_free:
+  lui $at, 0x8000
+  lw $k0, 0x424($at)
+  cache 0xD, 0x0($a0)
+  sw $k0, 0x0($a0)
+  mtc0 $k1, $14
+  sw $a0, 0x424($at)
+  eret
+
+.size libn64_syscall_mq_free,.-libn64_syscall_mq_free
 
 # -------------------------------------------------------------------
 #  System call table.
@@ -481,8 +599,12 @@ libn64_syscall_table:
 .long libn64_syscall_page_alloc
 .long libn64_syscall_page_free
 .long libn64_syscall_time
+.long libn64_syscall_sendt_message
+.long libn64_syscall_recvt_message
 .long libn64_syscall_send_message
 .long libn64_syscall_recv_message
+.long libn64_syscall_mq_alloc
+.long libn64_syscall_mq_free
 
 .size libn64_syscall_table,.-libn64_syscall_table
 

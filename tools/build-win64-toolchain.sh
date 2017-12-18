@@ -228,6 +228,12 @@ if [ ! -f stamps/checksum-build ]; then
   touch stamps/checksum-build
 fi
 
+if [ ! -f stamps/mkfs-build ]; then
+  x86_64-w64-mingw32-gcc -Wall -Wextra -pedantic -std=c99 -static -O2 mkfs.c -o bin/mkfs.exe
+
+  touch stamps/mkfs-build
+fi
+
 if [ ! -f stamps/rspasm-build ]; then
   pushd "${SCRIPT_DIR}/../rspasm"
 

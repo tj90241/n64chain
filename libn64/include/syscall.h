@@ -8,8 +8,8 @@
 // 'LICENSE', which is part of this source code package.
 //
 
-#ifndef LIBN64_INCLUDE_OS_SYSCALL_H
-#define LIBN64_INCLUDE_OS_SYSCALL_H
+#ifndef LIBN64_INCLUDE_SYSCALL_H
+#define LIBN64_INCLUDE_SYSCALL_H
 
 // Syscall numbers.
 #define LIBN64_SYSCALL_THREAD_CREATE     0
@@ -21,9 +21,17 @@
 #define LIBN64_SYSCALL_PAGE_FREE         6
 #define LIBN64_SYSCALL_TIME              7
 
-#define LIBN64_SYSCALL_SEND_MESSAGE      8
-#define LIBN64_SYSCALL_RECV_MESSAGE      9
-#define LIBN64_SYSCALL_INVALID           10
+#define LIBN64_SYSCALL_SENDT_MESSAGE     8
+#define LIBN64_SYSCALL_RECVT_MESSAGE     9
+#define LIBN64_SYSCALL_SEND_MESSAGE      10
+#define LIBN64_SYSCALL_RECV_MESSAGE      11
+#define LIBN64_SYSCALL_MQ_ALLOC          12
+#define LIBN64_SYSCALL_MQ_FREE           13
+#define LIBN64_SYSCALL_INVALID           14
+
+#define LIBN64_BLOCK                     0x00000000
+#define LIBN64_NOBLOCK                   0x80000000
+#define LIBN64_NOMSGS                    LIBN64_NOBLOCK
 
 #ifndef __ASSEMBLER__
 #include <stdint.h>
@@ -37,6 +45,8 @@ enum libn64_interrupt {
   LIBN64_INTERRUPT_SI = 0x440,
   LIBN64_INTERRUPT_VI = 0x444,
 };
+
+struct libn64_mq;
 
 // Spawns a new thread with a given priority (which receives arg). If
 // the new thread has a higher priority than the current thread, a
@@ -211,7 +221,7 @@ static inline struct timeval libn64_time(void) {
 
 // Sends a message with no parameter values to the specified thread.
 libn64func __attribute__((always_inline))
-static inline void libn64_send_message(libn64_thread thread, uint32_t message) {
+static inline void libn64_sendt_message(libn64_thread thread, uint32_t message) {
   register libn64_thread a0 __asm__("$a0") = thread;
   register uint32_t a1 __asm__("$a1") = message;
 
@@ -224,16 +234,102 @@ static inline void libn64_send_message(libn64_thread thread, uint32_t message) {
     ".set reorder\n\t"
     ".set at\n\t"
 
-    :: "r" (a0), "r" (a1), "K" (LIBN64_SYSCALL_SEND_MESSAGE)
+    :: "r" (a0), "r" (a1), "K" (LIBN64_SYSCALL_SENDT_MESSAGE)
     : "memory"
   );
 }
 
 // Sends a message with a parameter value to the specified thread.
 libn64func __attribute__((always_inline))
-static inline void libn64_send_message1(
+static inline void libn64_sendt_message1(
     libn64_thread thread, uint32_t message, uint32_t param) {
   register libn64_thread a0 __asm__("$a0") = thread;
+  register uint32_t a1 __asm__("$a1") = message;
+  register uint32_t a2 __asm__("$a2") = param;
+
+  __asm__ __volatile__(
+    ".set noreorder\n\t"
+    ".set noat\n\t"
+    "li $at, %3\n\t"
+    "syscall\n\t"
+    ".set reorder\n\t"
+    ".set at\n\t"
+
+    :: "r" (a0), "r" (a1), "r" (a2), "K" (LIBN64_SYSCALL_SENDT_MESSAGE)
+    : "memory"
+  );
+}
+
+// Blocks until a message is received. No message data is returned.
+libn64func __attribute__((always_inline))
+static inline uint32_t libn64_recvt_message(void) {
+  register uint32_t rv __asm__("$v0");
+
+  __asm__ __volatile__(
+    ".set noreorder\n\t"
+    ".set noat\n\t"
+    "li $at, %1\n\t"
+    "syscall\n\t"
+    ".set reorder\n\t"
+    ".set at\n\t"
+
+    : "=r" (rv)
+    : "K" (LIBN64_SYSCALL_RECVT_MESSAGE)
+    : "memory"
+  );
+
+  return rv;
+}
+
+// Blocks until a message is received; returns message and data.
+libn64func __attribute__((always_inline))
+static inline uint64_t libn64_recvt_message1(uint32_t *param) {
+  register uint32_t rv __asm__("$v0");
+  register uint32_t data __asm__("$at");
+
+  __asm__ __volatile__(
+    ".set noreorder\n\t"
+    ".set noat\n\t"
+    "li $at, %2\n\t"
+    "syscall\n\t"
+    ".set reorder\n\t"
+    ".set at\n\t"
+
+    : "=r" (rv), "=r" (data)
+    : "K" (LIBN64_SYSCALL_RECVT_MESSAGE)
+  );
+
+  *param = data;
+  return rv;
+}
+
+// Sends a message with no parameter values on the specified queue.
+libn64func __attribute__((always_inline))
+static inline void libn64_send_message(
+    struct libn64_mq *mq, uint32_t message) {
+  register struct libn64_mq *a0 __asm__("$a0") = mq;
+  register uint32_t a1 __asm__("$a1") = message;
+
+  __asm__ __volatile__(
+    ".set noreorder\n\t"
+    ".set noat\n\t"
+    "li $at, %3\n\t"
+    "xor $a2, $a2, $a2\n\t"
+    "syscall\n\t"
+    ".set reorder\n\t"
+    ".set at\n\t"
+
+    : "=r" (a0)
+    : "0" (a0), "r" (a1), "K" (LIBN64_SYSCALL_SEND_MESSAGE)
+    : "memory"
+  );
+}
+
+// Sends a message with a parameter value to the specified queue.
+libn64func __attribute__((always_inline))
+static inline void libn64_send_message1(
+    struct libn64_mq *mq, uint32_t message, uint32_t param) {
+  register struct libn64_mq *a0 __asm__("$a0") = mq;
   register uint32_t a1 __asm__("$a1") = message;
   register uint32_t a2 __asm__("$a2") = param;
 
@@ -251,9 +347,60 @@ static inline void libn64_send_message1(
 }
 
 // Blocks until a message is received. No message data is returned.
+// If not blocking and no msgs are queued, returns LIBN64_NOMSGS.
 libn64func __attribute__((always_inline))
-static inline uint32_t libn64_recv_message(void) {
+static inline uint32_t libn64_recv_message(
+    struct libn64_mq *mq, uint32_t flags) {
+  register struct libn64_mq *a0 __asm__("$a0") = mq;
+  register uint32_t a1 __asm__("$a1") = flags;
   register uint32_t rv __asm__("$v0");
+
+  __asm__ __volatile__(
+    ".set noreorder\n\t"
+    ".set noat\n\t"
+    "li $at, %3\n\t"
+    "syscall\n\t"
+    ".set reorder\n\t"
+    ".set at\n\t"
+
+    : "=r" (rv)
+    : "r" (a0), "r" (a1), "K" (LIBN64_SYSCALL_RECV_MESSAGE)
+    : "memory"
+  );
+
+  return rv;
+}
+
+// Blocks until a message is received; returns message and data.
+// If not blocking and no msgs are queued, returns LIBN64_NOMSGS.
+libn64func __attribute__((always_inline))
+static inline uint64_t libn64_recv_message1(
+    struct libn64_mq *mq, uint32_t flags, uint32_t *param) {
+  register struct libn64_mq *a0 __asm__("$a0") = mq;
+  register uint32_t a1 __asm__("$a1") = flags;
+  register uint32_t data __asm__("$at");
+  register uint32_t rv __asm__("$v0");
+
+  __asm__ __volatile__(
+    ".set noreorder\n\t"
+    ".set noat\n\t"
+    "li $at, %4\n\t"
+    "syscall\n\t"
+    ".set reorder\n\t"
+    ".set at\n\t"
+
+    : "=r" (rv), "=r" (data)
+    : "r" (a0), "r" (a1), "K" (LIBN64_SYSCALL_RECV_MESSAGE)
+  );
+
+  *param = data;
+  return rv;
+}
+
+// Allocates a message (16 bytes) from the message allocator.
+libn64func __attribute__((always_inline))
+static inline void *libn64_mq_alloc(void) {
+  register void *rv __asm__("$v0");
 
   __asm__ __volatile__(
     ".set noreorder\n\t"
@@ -264,33 +411,27 @@ static inline uint32_t libn64_recv_message(void) {
     ".set at\n\t"
 
     : "=r" (rv)
-    : "K" (LIBN64_SYSCALL_RECV_MESSAGE)
-    : "memory"
+    : "K" (LIBN64_SYSCALL_MQ_ALLOC)
   );
 
   return rv;
 }
 
-// Blocks until a message is received; returns message and data.
+// Returns a message to the message allocator.
 libn64func __attribute__((always_inline))
-static inline uint64_t libn64_recv_message1(uint32_t *param) {
-  register uint32_t rv __asm__("$v0");
-  register uint32_t data __asm__("$at");
+static inline void libn64_mq_free(void *message) {
+  register void *a0 __asm__("$a0") = message;
 
   __asm__ __volatile__(
     ".set noreorder\n\t"
     ".set noat\n\t"
-    "li $at, %2\n\t"
+    "li $at, %1\n\t"
     "syscall\n\t"
     ".set reorder\n\t"
     ".set at\n\t"
 
-    : "=r" (rv), "=r"(data)
-    : "K" (LIBN64_SYSCALL_RECV_MESSAGE)
+    :: "r" (a0), "K" (LIBN64_SYSCALL_MQ_FREE)
   );
-
-  *param = data;
-  return rv;
 }
 
 #endif

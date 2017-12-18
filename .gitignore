@@ -14,6 +14,7 @@
 /tools/libexec
 /tools/mips64-elf
 /tools/share
+/tools/*-linux-gnu
 
 *.a
 *.bin
@@ -21,7 +22,9 @@
 *.elf
 *.map
 *.o
+*.obj
 *.z64
 
+/*/filesystem.h
 *.swp
 

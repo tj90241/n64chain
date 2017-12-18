@@ -338,7 +338,7 @@ libn64_exception_handler_rcp_interrupt:
 #  Routine fits in 3 cache lines. There are a few load-after-use
 #  stalls, but they seem to largely be unavoidable given how few
 #  registers we have to work with. PFN of the allocated page is
-#  returned in $k0 and stored to 0x0($k1).
+#  returned in $k0.
 #
 #  Clobbers: $at, $k0
 # -------------------------------------------------------------------

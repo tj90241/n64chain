@@ -12,7 +12,7 @@
 #define LIBN64_PRIV_INCLUDE_OS_THREAD_H
 
 #include <libn64.h>
-#include <os/message.h>
+#include <mq.h>
 #include <stdint.h>
 
 #define LIBN64_THREAD_MIN_PRIORITY 0
@@ -31,8 +31,8 @@ struct libn64_thread_state {
 struct libn64_thread_internal {
   struct libn64_thread_state state;
 
-  struct message *messages_head;
-  struct message *messages_tail;
+  struct libn64_message *messages_tail;
+  struct libn64_message *messages_head;
   uint32_t priority;
   uint32_t blocked;
 

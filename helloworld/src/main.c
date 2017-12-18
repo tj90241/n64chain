@@ -8,6 +8,7 @@
 // 'LICENSE', which is part of this source code package.
 //
 
+#include <filesystem.h>
 #include <os/fbtext.h>
 #include <rcp/vi.h>
 #include <stdint.h>
@@ -80,10 +81,13 @@ void main(void *unused __attribute__((unused))) {
     context.y = 6;
 
     // Finally, render text where the cursor is placed.
-    libn64_fbtext_puts(&context, "Hello, world!");
+    extern char _binary_filesystem_bin_start;
+    uint32_t text_offset = CART_OFFS_DATA_TXT - 0x1000;
+    char *fs_ptr = &_binary_filesystem_bin_start;
+    libn64_fbtext_puts(&context, fs_ptr + text_offset);
 
     // Block until the next VI interrupt comes in.
-    libn64_recv_message();
+    libn64_recvt_message();
   }
 }
 

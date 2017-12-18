@@ -67,6 +67,8 @@ if [ ! -f stamps/binutils-install ]; then
   touch stamps/binutils-install
 fi
 
+exit 0
+
 if [ ! -f stamps/gcc-download ]; then
   wget "${GCC}" -O "tarballs/$(basename ${GCC})"
   touch stamps/gcc-download
@@ -180,6 +182,12 @@ if [ ! -f stamps/checksum-build ]; then
   cc -Wall -Wextra -pedantic -std=c99 -static -O2 checksum.c -o bin/checksum
 
   touch stamps/checksum-build
+fi
+
+if [ ! -f stamps/mkfs-build ]; then
+  cc -Wall -Wextra -pedantic -std=c99 -static -O2 mkfs.c -o bin/mkfs
+
+  touch stamps/mkfs-build
 fi
 
 if [ ! -f stamps/rspasm-build ]; then

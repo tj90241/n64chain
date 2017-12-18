@@ -60,7 +60,7 @@ void vi_thread(void *opaque) {
     }
 
     // Block until the next VI interrupt comes in.
-    libn64_recv_message();
+    libn64_recvt_message();
   }
 }
 
@@ -78,7 +78,7 @@ void box_anim_thread(void *opaque) {
   char x_dir = args->init_x_dir;
   char y_dir = args->init_y_dir;
 
-  libn64_recv_message();
+  libn64_recvt_message();
 
   while (1) {
     // Draw the box (8x8).
@@ -127,7 +127,7 @@ void box_anim_thread(void *opaque) {
       y_dir = 1;
 
     // Block until the next VI interrupt comes in.
-    libn64_recv_message();
+    libn64_recvt_message();
   }
 }
 
