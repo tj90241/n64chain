@@ -23,7 +23,8 @@ CC = $(call FIXPATH,$(CURDIR)/../tools/bin/mips64-elf-gcc)
 CFLAGS = -Wall -Wextra -pedantic -std=c99 -I. -Iinclude -Ipriv_include
 OPTFLAGS = -Os -march=vr4300 -mtune=vr4300 -mabi=eabi -mgp32 -mlong32 \
 	-flto -ffat-lto-objects -ffunction-sections -fdata-sections \
-	-G4 -mno-extern-sdata -mgpopt -mfix4300 -mbranch-likely
+	-G4 -mno-extern-sdata -mgpopt -mfix4300 -mbranch-likely \
+	-mno-check-zero-division
 
 ASMFILES = $(call FIXPATH,\
 	os/asm/boot.s \

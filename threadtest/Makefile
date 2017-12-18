@@ -33,7 +33,8 @@ CFLAGS = -Wall -Wextra -pedantic -std=c99 -Wno-main \
 
 OPTFLAGS = -Os -march=vr4300 -mtune=vr4300 -mabi=eabi -mgp32 -mlong32 \
 	-flto -ffat-lto-objects -ffunction-sections -fdata-sections \
-	-G4 -mno-extern-sdata -mgpopt -mfix4300 -mbranch-likely
+	-G4 -mno-extern-sdata -mgpopt -mfix4300 -mbranch-likely \
+	-mno-check-zero-division
 
 ASMFILES = $(call FIXPATH,\
 )

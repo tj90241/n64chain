@@ -370,7 +370,7 @@ libn64_syscall_time:
   # 62,500,000 * 1.5 / 2 = 46,875,000 ticks per second.
   lui $k1, 0x02CB
   ori $k1, 0x4178
-  ddivu $k0, $k1
+  ddivu $zero, $k0, $k1
 
   # tv_sec is the result of the div. Compute tv_usec next.
   mflo $v0 # div result -> tv_sec
@@ -385,7 +385,7 @@ libn64_syscall_time:
   dsll32 $v1, $v1, 0
   dsrl32 $k0, $k0, 0
   or $v1, $v1, $k0
-  ddivu $v1, $k1
+  ddivu $zero, $v1, $k1
   mflo $v1
   nop
   eret
