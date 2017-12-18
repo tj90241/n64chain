@@ -77,9 +77,10 @@ struct fsinode *create_fsinode(const char *path, file_handle_t *f) {
   }
 
 #ifdef _WIN32
-  sprintf(local_path, "%s\%s", path, name);
+  sprintf(local_path, "%s\\%s", path, name);
 
-  if (!(f->dwFileAttributes & FILE_ATTRIBUTE_NORMAL)) {
+  if (!(f->dwFileAttributes & (FILE_ATTRIBUTE_NORMAL |
+                               FILE_ATTRIBUTE_ARCHIVE))) {
     fprintf(stderr, "Only regular files are supported.\n");
     fprintf(stderr, "Unable to handle the following: '%s'\n", local_path);
 
@@ -158,7 +159,14 @@ const char *dir_getname(file_handle_t *handle) {
 int dir_next(const char *path, dir_handle_t *handle, file_handle_t *f) {
 #ifdef _WIN32
   if (*handle == INVALID_HANDLE_VALUE) {
-    *handle = FindFirstFile(path, f);
+    char searchpath[MAX_PATH];
+
+    if (strlen(path) > (MAX_PATH - 3))
+      return -1;
+
+    sprintf(searchpath, "%s\\*", path);
+
+    *handle = FindFirstFile(searchpath, f);
     if (*handle == INVALID_HANDLE_VALUE)
       return -1;
   }
@@ -352,8 +360,10 @@ int write_image(FILE *fs, FILE *fslist, const struct fsinode *root) {
 
     file_offset += inode->size;
 
-    if (file_offset & 0x1)
+    if (file_offset & 0x1) {
+      fputc('\0', fs);
       file_offset++;
+    }
 
     fclose(f);
   }

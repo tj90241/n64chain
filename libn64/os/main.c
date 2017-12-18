@@ -9,7 +9,7 @@
 //
 
 #include <libn64.h>
-#include <io/thread.h>
+#include <io/init.h>
 #include <os/idle_thread.h>
 #include <os/mm.h>
 #include <os/thread.h>
