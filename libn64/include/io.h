@@ -15,10 +15,10 @@
 #include <mq.h>
 #include <syscall.h>
 
-enum libn64_io_command {
-  LIBN64_IO_CMD_CART2RAM = 1,
-  LIBN64_IO_RCP_INTERRUPT = -3,
-  LIBN64_IO_CMD_INVALID = -1,
+enum libn64_pi_command {
+  LIBN64_PI_RCP_INTERRUPT = -3,
+  LIBN64_PI_CMD_FILESYSTEM_LOAD = 1,
+  LIBN64_PI_CMD_INVALID = -1,
 };
 
 enum libn64_io_response {
@@ -26,7 +26,7 @@ enum libn64_io_response {
   LIBN64_IO_RESP_ERROR = -1,
 };
 
-struct libn64_io_request {
+struct libn64_pi_request {
   uint32_t dest_address;
   uint32_t src_address;
   uint32_t size;
@@ -35,8 +35,8 @@ struct libn64_io_request {
 };
 
 libn64func
-static inline libn64_thread libn64_io_get_thread(void) {
-  libn64_thread io_thread;
+static inline libn64_thread libn64_pi_get_thread(void) {
+  libn64_thread pi_thread;
 
   __asm__ __volatile__(
     ".set noat\n\t"
@@ -46,14 +46,14 @@ static inline libn64_thread libn64_io_get_thread(void) {
     ".set gp=default\n\t"
     ".set at\n\t"
 
-    : "=r" (io_thread)
+    : "=r" (pi_thread)
   );
 
-  return io_thread;
+  return pi_thread;
 }
 
 libn64func
-static inline void libn64_io_pack_request(struct libn64_io_request *req,
+static inline void libn64_pi_pack_request(struct libn64_pi_request *req,
     struct libn64_mq *mq, uint32_t dest_address, uint32_t src_address,
     uint32_t size) {
   req->dest_address = dest_address;
@@ -63,10 +63,10 @@ static inline void libn64_io_pack_request(struct libn64_io_request *req,
 }
 
 libn64func
-static inline void libn64_io_submit(uint32_t command,
-    struct libn64_io_request *request) {
-  libn64_thread io_thread = libn64_io_get_thread();
-  libn64_sendt_message1(io_thread, command, request);
+static inline void libn64_pi_submit(uint32_t command,
+    struct libn64_pi_request *request) {
+  libn64_thread pi_thread = libn64_pi_get_thread();
+  libn64_sendt_message1(pi_thread, command, request);
 }
 
 #endif

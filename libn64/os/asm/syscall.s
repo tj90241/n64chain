@@ -512,6 +512,7 @@ libn64_recv_maybe_block_thread:
   bgezl $a1, libn64_recv_block_thread
   lw $k1, 0x8($a0)
   lui $v0, 0x8000
+  xor $at, $at, $at
   eret
 
 libn64_recv_block_thread:

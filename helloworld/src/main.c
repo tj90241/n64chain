@@ -43,13 +43,13 @@ void main(void *unused __attribute__((unused))) {
   // Below is an example of how to load the "Hello, world" resource off
   // the cart by submitting an I/O request and blocking until completion.
   struct libn64_mq *mq = libn64_mq_create();
-  struct libn64_io_request *req = (struct libn64_io_request *)
+  struct libn64_pi_request *req = (struct libn64_pi_request *)
       libn64_mq_alloc();
 
-  libn64_io_pack_request(req, mq, 0x100000, // @ 1MB
+  libn64_pi_pack_request(req, mq, 0x100000, // @ 1MB
       CART_OFFS_DATA_TXT, CART_SIZE_DATA_TXT);
 
-  libn64_io_submit(LIBN64_IO_CMD_CART2RAM, req);
+  libn64_pi_submit(LIBN64_PI_CMD_FILESYSTEM_LOAD, req);
   libn64_recv_message(mq, LIBN64_BLOCK);
 
   libn64_mq_free(req);

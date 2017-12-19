@@ -8,16 +8,16 @@
 // 'LICENSE', which is part of this source code package.
 //
 
-#include <io/thread.h>
+#include <io/pi_thread.h>
 #include <libn64.h>
 #include <stddef.h>
 #include <syscall.h>
 
 libn64func
 void libn64_io_init(void) {
-  libn64_thread io_thread;
+  libn64_thread pi_thread;
 
-  io_thread = libn64_thread_create(libn64_io_thread, NULL,
+  pi_thread = libn64_thread_create(libn64_pi_thread, NULL,
       LIBN64_THREAD_MAX_PRIORITY);
 
   // Store the thread address in the global block.
@@ -29,7 +29,7 @@ void libn64_io_init(void) {
     ".set gp=default\n\t"
     ".set at\n\t"
 
-    :: "r" (io_thread)
+    :: "r" (pi_thread)
     : "memory"
   );
 }
