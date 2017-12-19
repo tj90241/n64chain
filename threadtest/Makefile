@@ -21,6 +21,7 @@ ROM_NAME = $(notdir $(CURDIR))
 AS = $(call FIXPATH,$(CURDIR)/../tools/bin/mips64-elf-as)
 AR = $(call FIXPATH,$(CURDIR)/../tools/bin/mips64-elf-gcc-ar)
 CC = $(call FIXPATH,$(CURDIR)/../tools/bin/mips64-elf-gcc)
+CPP = $(call FIXPATH,$(CURDIR)/../tools/bin/mips64-elf-cpp)
 MAKE = $(call FIXPATH,$(CURDIR)/../tools/bin/make)
 MKFS = $(call FIXPATH,$(CURDIR)/../tools/bin/mkfs)
 OBJCOPY = $(call FIXPATH,$(CURDIR)/../tools/bin/mips64-elf-objcopy)
@@ -44,13 +45,16 @@ CFILES = $(call FIXPATH,\
 )
 
 UCODES = $(call FIXPATH,\
+	$(wildcard ucodes/*.rsp) \
 )
 
 OBJFILES = \
 	$(ASMFILES:.S=.o) \
 	$(CFILES:.c=.o)
 
-UCODEBINS = $(UCODES:.rsp=.bin)
+UCODETSKS = $(foreach ucode, $(UCODES),\
+	filesystem/$(basename $(notdir $(ucode))).tsk)
+
 DEPFILES = $(OBJFILES:.o=.d)
 
 #
@@ -63,7 +67,7 @@ $(ROM_NAME).z64: $(ROM_NAME).elf
 	@$(OBJCOPY) -O binary $< $@
 	@$(CHECKSUM) $(call FIXPATH,../libn64/header.bin) $@
 
-$(ROM_NAME).elf: libn64 $(OBJFILES) filesystem.obj $(UCODEBINS)
+$(ROM_NAME).elf: libn64 $(OBJFILES) filesystem.obj
 	@echo $(call FIXPATH,"Building: $(ROM_NAME)/$@")
 	@$(CC) $(CFLAGS) $(OPTFLAGS) -Wl,-Map=$(ROM_NAME).map -nostdlib \
 		-T$(call FIXPATH,../libn64/rom.ld) -o $@ $(OBJFILES) filesystem.obj \
@@ -76,15 +80,13 @@ filesystem.obj: filesystem.h
 	@echo $(call FIXPATH,"Building: $(ROM_NAME)/$@")
 	@$(OBJCOPY) -I binary -O elf32-bigmips -B mips filesystem.bin $@
 
-filesystem.h: $(wildcard filesystem/*)
+filesystem.h: $(wildcard filesystem/*) $(UCODETSKS)
 	@echo $(call FIXPATH,"Generate: $(ROM_NAME)/$@")
 	@$(MKFS) filesystem.bin filesystem.h filesystem
 
 #
 # Generic compilation/assembly targets.
 #
-$(call FIXPATH,src/graphics.o): $(call FIXPATH,src/graphics.S) $(call FIXPATH,src/graphics.bin)
-
 %.o: %.S filesystem.h
 	@echo $(call FIXPATH,"Assembling: $(ROM_NAME)/$<")
 	@$(CC) $(CFLAGS) $(OPTFLAGS) -MMD -c $< -o $@
@@ -93,9 +95,9 @@ $(call FIXPATH,src/graphics.o): $(call FIXPATH,src/graphics.S) $(call FIXPATH,sr
 	@echo $(call FIXPATH,"Compiling: $(ROM_NAME)/$<")
 	@$(CC) $(CFLAGS) $(OPTFLAGS) -MMD -c $< -o $@
 
-%.bin: %.rsp
-	@echo $(call FIXPATH,"Assembling: $(ROM_NAME)/$<")
-	@$(RSPASM) -o $@ $<
+filesystem/%.tsk: ucodes/%.rsp
+	@echo $(call FIXPATH,"Assembling: $(ROM_NAME)/$@")
+	@$(CPP) -E -I../libn64/ucodes -Iucodes $< | $(RSPASM) -o $@ -
 
 .PHONY: libn64
 libn64:
