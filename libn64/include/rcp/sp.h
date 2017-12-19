@@ -1,5 +1,5 @@
 //
-// libn64/include/rcp/rsp.h: RSP helper functions.
+// libn64/include/rcp/sp.h: Signal process (SP) helper functions.
 //
 // n64chain: A (free) open-source N64 development toolchain.
 // Copyright 2014-16 Tyler J. Stachecki <stachecki.tyler@gmail.com>
@@ -8,8 +8,8 @@
 // 'LICENSE', which is part of this source code package.
 //
 
-#ifndef LIBN64_INCLUDE_RCP_RSP_H
-#define LIBN64_INCLUDE_RCP_RSP_H
+#ifndef LIBN64_INCLUDE_RCP_SP_H
+#define LIBN64_INCLUDE_RCP_SP_H
 
 #include <libn64.h>
 #include <stddef.h>
@@ -47,14 +47,14 @@
 // semaphore as needed, adjust the length (subtract one from
 // the amount you actually want copied), etc.
 libn64func
-static inline void rsp_issue_dma_to_rsp(
-  uint32_t paddr, uint32_t sp_addr, size_t len) {
+static inline void libn64_rsp_dma_to_rsp(
+  uint32_t sp_addr, uint32_t paddr, size_t len) {
   __asm__ __volatile__(
     "sw %[sp_addr], 0x00(%[sp_region])\n\t"
     "sw %[paddr],   0x04(%[sp_region])\n\t"
     "sw %[len],     0x08(%[sp_region])\n\t"
 
-    :: [paddr] "r" (paddr), [sp_addr] "r" (sp_addr), [len] "r" (len),
+    :: [sp_addr] "r" (sp_addr), [paddr] "r" (paddr), [len] "r" (len),
        [sp_region] "r" (0xA4040000U)
   );
 }
@@ -63,13 +63,19 @@ static inline void rsp_issue_dma_to_rsp(
 //
 // Returns 1 if a DMA is pending, 0 otherwise.
 libn64func
-static inline uint32_t rsp_is_dma_pending(void) {
+static inline uint32_t libn64_rsp_is_dma_pending(void) {
   return *(volatile const uint32_t *) 0xA4040018;
+}
+
+// Returns the RSP status register.
+libn64func
+static inline uint32_t libn64_rsp_get_status(void) {
+  return *(volatile const uint32_t *) 0xA4040010;
 }
 
 // Sets the RSP PC register.
 libn64func
-static inline void rsp_set_pc(uint32_t pc) {
+static inline void libn64_rsp_set_pc(uint32_t pc) {
   *(volatile uint32_t *) 0xA4080000 = pc;
 }
 
@@ -77,7 +83,7 @@ static inline void rsp_set_pc(uint32_t pc) {
 //
 // (see RSP_STATUS_CLEAR_* and RSP_STATUS_SET_*)
 libn64func
-static inline void rsp_set_status(uint32_t mask) {
+static inline void libn64_rsp_set_status(uint32_t mask) {
   *(volatile uint32_t *) 0xA4040010 = mask;
 }
 

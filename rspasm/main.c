@@ -88,6 +88,7 @@ int assemble(FILE *in, FILE *out) {
 }
 
 int main(int argc, const char *argv[]) {
+  const char *output_path = NULL;
   int status = EXIT_SUCCESS;
   FILE *input, *output;
   int i;
@@ -147,6 +148,7 @@ int main(int argc, const char *argv[]) {
               fprintf(stderr, "Failed to open for writing: %s.\n", argv[i + 1]);
 
               i = argc;
+              output_path = argv[i + 1];
               status = EXIT_FAILURE;
               break;
             }
@@ -184,8 +186,9 @@ int main(int argc, const char *argv[]) {
     else if (output == NULL)
       fprintf(stderr, "An output file was not specified.\n");
 
-    else
+    else {
       status = assemble(input, output);
+    }
   }
 
   if (input && input != stdin)
@@ -193,6 +196,9 @@ int main(int argc, const char *argv[]) {
 
   if (output && output != stdout)
     fclose(output);
+
+  if (status != EXIT_SUCCESS && output_path != NULL)
+    remove(output_path);
 
   return status;
 }

@@ -1,0 +1,18 @@
+#include "defs.h"
+
+.text
+
+; Initialize the RSP (configure CP0, load constants, etc.)
+init_rsp:
+  addiu $at, $0, (CLEAR_RSP_INTERRUPT | SET_INTR_ON_BREAK)
+  mtc0 $at, SP_STATUS
+
+; Initialize the RDP (enable the XBUS, etc.)
+init_rdp:
+  addiu $at, $0, (SET_XBUS_DMEM_DMA | CLEAR_FREEZE | CLEAR_FLUSH)
+  mtc0 $at, CMD_STATUS
+
+; Raise an interrupt - we are done.
+  break
+  nop
+

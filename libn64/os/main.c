@@ -14,6 +14,7 @@
 #include <os/mm.h>
 #include <os/thread.h>
 #include <os/time.h>
+#include <sp/init.h>
 #include <stddef.h>
 #include <syscall.h>
 
@@ -52,8 +53,9 @@ void libn64_main(uint32_t kernel_sp, uint32_t bss_end) {
   // pages on top of our active stack, but it's fine for now...
   libn64_mm_init(kernel_sp - 4096 * 8, kernel_sp);
 
-  // Kickoff the IO engine.
+  // Kickoff the IO engine and initialize the SP.
   libn64_io_init();
+  libn64_sp_init();
 
   // This thread invokes main() and becomes the idle thread.
   libn64_idle_thread();

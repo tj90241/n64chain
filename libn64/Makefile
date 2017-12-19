@@ -19,6 +19,9 @@ endif
 AS = $(call FIXPATH,$(CURDIR)/../tools/bin/mips64-elf-as)
 AR = $(call FIXPATH,$(CURDIR)/../tools/bin/mips64-elf-gcc-ar)
 CC = $(call FIXPATH,$(CURDIR)/../tools/bin/mips64-elf-gcc)
+CPP = $(call FIXPATH,$(CURDIR)/../tools/bin/mips64-elf-cpp)
+
+RSPASM = $(call FIXPATH,$(CURDIR)/../tools/bin/rspasm)
 
 CFLAGS = -Wall -Wextra -pedantic -std=c99 -I. -Iinclude -Ipriv_include
 OPTFLAGS = -Os -march=vr4300 -mtune=vr4300 -mabi=eabi -mgp32 -mlong32 \
@@ -45,11 +48,17 @@ CFILES = $(call FIXPATH,\
 	os/thread.c \
 	os/time.c \
 	rcp/vi.c \
+	sp/init.c \
+)
+
+UCODES = $(call FIXPATH,\
+	ucodes/init.rsp \
 )
 
 OBJFILES = \
 	$(CFILES:.c=.o) \
-	$(ASMFILES:.s=.o)
+	$(ASMFILES:.s=.o) \
+	$(UCODES:.rsp=.o)
 
 DEPFILES = $(OBJFILES:.o=.d)
 
@@ -70,6 +79,11 @@ libn64.a: $(OBJFILES)
 %.o: %.c include/syscall.h
 	@echo $(call FIXPATH,"Compiling: libn64/$<")
 	@$(CC) $(CFLAGS) $(OPTFLAGS) -MMD -c $< -o $@
+
+%.o: %.rsp %.rsps
+	@echo $(call FIXPATH,"Assembling: $(ROM_NAME)/$@")
+	@$(CPP) -E -Iucodes $< | $(RSPASM) -o $(<:.rsp=.bin) -
+	@$(CC) -x assembler-with-cpp $(CFLAGS) $(OPTFLAGS) -MMD -c $(<:.rsp=.rsps) -o $@
 
 #
 # Clean project target.
