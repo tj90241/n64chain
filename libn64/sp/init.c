@@ -34,6 +34,6 @@ void libn64_sp_init(void) {
   // Execute the ucode and wait for it to complete.
   libn64_rsp_set_pc(0x04001000);
   libn64_rsp_set_status(RSP_STATUS_CLEAR_HALT | RSP_STATUS_CLEAR_BROKE);
-  while ((libn64_rsp_get_status() & 0x3) == 0x3);
+  while ((libn64_rsp_get_status() & 0x3) != 0x3);
 }
 
