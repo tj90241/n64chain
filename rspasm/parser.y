@@ -78,15 +78,15 @@ int yyerror(YYLTYPE *yylloc, yyscan_t scanner, const char *error) {
 %token OPCODE_RRI
 %token OPCODE_RRR
 %token OPCODE_RRS
-%token OPCODE_RRT //
+%token OPCODE_RRT
 %token OPCODE_RT //
 %token OPCODE_RZ2 //
 %token OPCODE_RZ2E //
 %token OPCODE_T //
-%token OPCODE_VO_LWC2 //
-%token OPCODE_VO_SWC2 //
-%token OPCODE_VV //
-%token OPCODE_VVV //
+%token OPCODE_VO_LWC2
+%token OPCODE_VO_SWC2
+%token OPCODE_VV
+%token OPCODE_VVV
 %token OP_AND
 %token OP_BNOT
 %token OP_DIVIDE
@@ -120,8 +120,10 @@ int yyerror(YYLTYPE *yylloc, yyscan_t scanner, const char *error) {
 %type <constant> constexpr expr CONSTANT
 %type <identifier> IDENTIFIER
 %type <opcode> OPCODE OPCODE_RI OPCODE_RO OPCODE_RRC0 OPCODE_RRI OPCODE_RRR
-               OPCODE_RRS VOPCODE
-%type <reg> SCALAR_REG VECTOR_REG scalar_register
+               OPCODE_RRS OPCODE_RRT OPCODE_VO_LWC2 OPCODE_VO_SWC2
+               OPCODE_VV OPCODE_VVV VOPCODE
+
+%type <reg> SCALAR_REG VECTOR_REG scalar_register vector_register
 
 %%
 
@@ -255,6 +257,60 @@ scalar_instruction:
         rspasmget_extra(scanner), &yyloc, $1, $2, $4, $6))
         return EXIT_FAILURE;
     }
+
+    | OPCODE_RRT scalar_register COMMA scalar_register COMMA expr {
+      if (rspasm_emit_instruction_rrt(
+        rspasmget_extra(scanner), &yyloc, $1, $2, $4, $6))
+        return EXIT_FAILURE;
+    }
+
+    | OPCODE_VO_LWC2 vector_register COMMA
+                     expr LEFT_PAREN scalar_register RIGHT_PAREN {
+      if (rspasm_emit_instruction_vo_lwc2(
+        rspasmget_extra(scanner), &yyloc, $1, $2, 0, $4, $6))
+        return EXIT_FAILURE;
+    }
+
+    | OPCODE_VO_LWC2 vector_register LEFT_BRACKET expr RIGHT_BRACKET COMMA
+                     expr LEFT_PAREN scalar_register RIGHT_PAREN {
+      if (rspasm_emit_instruction_vo_lwc2(
+        rspasmget_extra(scanner), &yyloc, $1, $2, $4, $7, $9))
+        return EXIT_FAILURE;
+    }
+
+    | OPCODE_VO_SWC2 vector_register COMMA
+                     expr LEFT_PAREN scalar_register RIGHT_PAREN {
+      if (rspasm_emit_instruction_vo_swc2(
+        rspasmget_extra(scanner), &yyloc, $1, $2, 0, $4, $6))
+        return EXIT_FAILURE;
+    }
+
+    | OPCODE_VO_SWC2 vector_register LEFT_BRACKET expr RIGHT_BRACKET COMMA
+                     expr LEFT_PAREN scalar_register RIGHT_PAREN {
+      if (rspasm_emit_instruction_vo_swc2(
+        rspasmget_extra(scanner), &yyloc, $1, $2, $4, $7, $9))
+        return EXIT_FAILURE;
+    }
+
+    | OPCODE_VV vector_register LEFT_BRACKET expr RIGHT_BRACKET COMMA
+                vector_register LEFT_BRACKET expr RIGHT_BRACKET {
+      if (rspasm_emit_instruction_vv(
+        rspasmget_extra(scanner), &yyloc, $1, $2, $4, $7, $9))
+        return EXIT_FAILURE;
+    }
+
+    | OPCODE_VVV vector_register COMMA vector_register COMMA vector_register {
+      if (rspasm_emit_instruction_vvv(
+        rspasmget_extra(scanner), &yyloc, $1, $2, $4, $6, 0))
+        return EXIT_FAILURE;
+    }
+
+    | OPCODE_VVV vector_register COMMA vector_register COMMA vector_register
+                 LEFT_BRACKET expr RIGHT_BRACKET {
+      if (rspasm_emit_instruction_vvv(
+        rspasmget_extra(scanner), &yyloc, $1, $2, $4, $6, $8))
+        return EXIT_FAILURE;
+    }
   ;
 
 scalar_register:
@@ -278,6 +334,37 @@ scalar_register:
 
         if (type != RSPASM_IDENTIFIER_NODE_REG) {
           fprintf(stderr, "line %u: %s: expected a scalar register\n",
+              @1.first_line, $1);
+
+          YYERROR;
+        }
+
+        $$ = reg;
+      }
+    }
+  ;
+
+vector_register:
+    VECTOR_REG {
+      $$ = $1;
+    }
+
+  | IDENTIFIER {
+      const struct rspasm *rspasm = rspasmget_extra(scanner);
+
+      if (!rspasm->first_pass) {
+        enum rspasm_identifier_node_type type;
+        int32_t reg;
+
+        if (!rspasm_identifiers_get(rspasm->identifiers, $1, &reg, &type)) {
+          fprintf(stderr, "line %u: unknown symbol or identifier: %s\n",
+              @1.first_line, $1);
+
+          YYERROR;
+        }
+
+        if (type != RSPASM_IDENTIFIER_NODE_VREG) {
+          fprintf(stderr, "line %u: %s: expected a vector register\n",
               @1.first_line, $1);
 
           YYERROR;

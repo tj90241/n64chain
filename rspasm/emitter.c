@@ -106,7 +106,7 @@ int rspasm_emit_half(struct rspasm *rspasm, const YYLTYPE *loc, long int half) {
     return -1;
   }
 
-  uhalf = htonl(half);
+  uhalf = htons(half);
   memcpy(rspasm->data + rspasm->dhead, &uhalf, sizeof(uhalf));
   rspasm->dhead += sizeof(uhalf);
 
@@ -276,6 +276,191 @@ int rspasm_emit_instruction_rrs(struct rspasm *rspasm,
   }
 
   iw = htonl(opcode | (rd << 11) | (rt << 16) | ((sa & 0x1F) << 6));
+  memcpy(rspasm->data + rspasm->ihead, &iw, sizeof(iw));
+  rspasm->ihead += sizeof(iw);
+
+  return 0;
+}
+
+int rspasm_emit_instruction_rrt(struct rspasm *rspasm,
+  const YYLTYPE *loc, enum rsp_opcode opcode,
+  unsigned rs, unsigned rt, int offset) {
+  uint32_t soffset, iw;
+
+  offset -= 0x1000;
+
+  if (offset > 4096 || offset < -4096) {
+    fprintf(stderr, "line %d: Offset greater than IMEM size.\n",
+      loc->first_line);
+
+    return -1;
+  }
+
+  offset -= (rspasm->ihead & 0xFFF) + 0x4;
+  soffset = (unsigned short) ((short) offset >> 2);
+
+  iw = htonl((opcode << 26) | (rs << 21) | (rt << 16) | (soffset & 0xFFFF));
+  memcpy(rspasm->data + rspasm->ihead, &iw, sizeof(iw));
+  rspasm->ihead += sizeof(iw);
+
+  return 0;
+}
+
+int rspasm_emit_instruction_vo_lwc2(struct rspasm *rspasm,
+  const YYLTYPE *loc, enum rsp_opcode opcode,
+  unsigned vt, unsigned element, long offset, unsigned base) {
+  unsigned offsetshift;
+  uint32_t iw;
+
+  if (rspasm_emit_instruction_common(rspasm, loc))
+    return -1;
+
+  if (vt == 0) {
+    fprintf(stderr, "line %d: Instruction writes to $v0.\n",
+      loc->first_line);
+  }
+
+  if (element > 0xF) {
+    fprintf(stderr, "line %d: "
+      "Element is out of range.\n", loc->first_line);
+
+    return -1;
+  }
+
+  // TODO: LWV
+  switch (opcode) {
+    case LBV: offsetshift = 0; break;
+    case LDV: offsetshift = 3; break;
+    case LFV: offsetshift = 4; break;
+    case LHV: offsetshift = 4; break;
+    case LLV: offsetshift = 2; break;
+    case LPV: offsetshift = 3; break;
+    case LQV: offsetshift = 4; break;
+    case LRV: offsetshift = 4; break;
+    case LSV: offsetshift = 1; break;
+    case LTV: offsetshift = 4; break;
+    case LUV: offsetshift = 3; break;
+
+    default:  offsetshift = 0; break;
+  }
+
+  // See if we shift any bits off - toss out a warning if so
+  if ((offset >> offsetshift) << offsetshift != offset ||
+      (offset >> (offsetshift + 0x6) != -1 &&
+       offset >> (offsetshift + 0x6) != 0)) {
+    fprintf(stderr, "line %d: "
+      "Cannot properly represent specified offset.\n", loc->first_line);
+
+    return -1;
+  }
+
+  iw = htonl((0x32 << 26) | (opcode << 11) | (vt << 16) | (base << 21) |
+      (element << 7) | (offset >> offsetshift));
+
+  memcpy(rspasm->data + rspasm->ihead, &iw, sizeof(iw));
+  rspasm->ihead += sizeof(iw);
+
+  return 0;
+}
+
+int rspasm_emit_instruction_vo_swc2(struct rspasm *rspasm,
+  const YYLTYPE *loc, enum rsp_opcode opcode,
+  unsigned vt, unsigned element, long offset, unsigned base) {
+  unsigned offsetshift;
+  uint32_t iw;
+
+  if (rspasm_emit_instruction_common(rspasm, loc))
+    return -1;
+
+  if (element > 0xF) {
+    fprintf(stderr, "line %d: "
+      "Element is out of range.\n", loc->first_line);
+
+    return -1;
+  }
+
+  // TODO: SWV
+  switch (opcode) {
+    case SBV: offsetshift = 0; break;
+    case SDV: offsetshift = 3; break;
+    case SFV: offsetshift = 4; break;
+    case SHV: offsetshift = 4; break;
+    case SLV: offsetshift = 2; break;
+    case SPV: offsetshift = 3; break;
+    case SQV: offsetshift = 4; break;
+    case SRV: offsetshift = 4; break;
+    case SSV: offsetshift = 1; break;
+    case STV: offsetshift = 4; break;
+    case SUV: offsetshift = 3; break;
+
+    default:  offsetshift = 0; break;
+  }
+
+  // See if we shift any bits off - toss out a warning if so
+  if ((offset >> offsetshift) << offsetshift != offset ||
+      (offset >> (offsetshift + 0x6) != -1 &&
+       offset >> (offsetshift + 0x6) != 0)) {
+    fprintf(stderr, "line %d: "
+      "Cannot properly represent specified offset.\n", loc->first_line);
+
+    return -1;
+  }
+
+  iw = htonl((0x3A << 26) | (opcode << 11) | (vt << 16) | (base << 21) |
+     (element << 7) | (offset >> offsetshift));
+
+  memcpy(rspasm->data + rspasm->ihead, &iw, sizeof(iw));
+  rspasm->ihead += sizeof(iw);
+
+  return 0;
+}
+
+int rspasm_emit_instruction_vv(struct rspasm *rspasm,
+  const YYLTYPE *loc, enum rsp_opcode opcode,
+  unsigned vd, unsigned delement, long vt, unsigned element) {
+  uint32_t iw;
+
+  if (element > 0xF) {
+    fprintf(stderr, "line %d: "
+      "Source element is out of range.\n", loc->first_line);
+
+    return -1;
+  }
+
+  if (delement > 0xF) {
+    fprintf(stderr, "line %d: "
+      "Destination element is out of range.\n", loc->first_line);
+
+    return -1;
+  }
+
+  iw = htonl((0x25 << 25) | (vt << 16) | (vd << 6) |
+     (element << 21) | (delement << 11) | opcode);
+
+  memcpy(rspasm->data + rspasm->ihead, &iw, sizeof(iw));
+  rspasm->ihead += sizeof(iw);
+
+  return 0;
+}
+
+int rspasm_emit_instruction_vvv(struct rspasm *rspasm,
+  const YYLTYPE *loc, enum rsp_opcode opcode,
+  unsigned vd, unsigned vs, unsigned vt, unsigned element) {
+  uint32_t iw;
+
+  if (rspasm_emit_instruction_common(rspasm, loc))
+    return -1;
+
+  if (element > 0xF) {
+    fprintf(stderr, "line %d: "
+      "Element is out of range.\n", loc->first_line);
+
+    return -1;
+  }
+
+  iw = htonl((0x25 << 25) | (vt << 16) | (vs << 11) | (vd << 6) |
+     (element << 21) | opcode);
+
   memcpy(rspasm->data + rspasm->ihead, &iw, sizeof(iw));
   rspasm->ihead += sizeof(iw);
 
