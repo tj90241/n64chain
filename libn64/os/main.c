@@ -28,7 +28,7 @@ void libn64_main(uint32_t kernel_sp, uint32_t bss_end) {
   libn64_time_init();
   libn64_thread_early_init(kernel_sp);
 
-  // Give libn64 the minimum amount of memory allowable (~24KiB)
+  // Give libn64 the minimum amount of memory allowable (~32KiB)
   // right above the thread table (at the top of RAM).
   //
   // 4/8MiB -----------------+
@@ -40,7 +40,7 @@ void libn64_main(uint32_t kernel_sp, uint32_t bss_end) {
   //   |                     |
   //   +---------------------+
   //   |                     |
-  //   |       (free)        |  <- RDRAM - (32KiB - thread space)
+  //   |       (free)        |  <- RDRAM - (40KiB - thread space)
   //   |_____________________|
   //   |                     |
   //   |    libn64 kernel    |  <- 8KiB
