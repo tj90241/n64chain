@@ -34,6 +34,7 @@
 #define LIBN64_NOMSGS                    LIBN64_NOBLOCK
 
 #ifndef __ASSEMBLER__
+#include <libn64.h>
 #include <stdint.h>
 #include <time.h>
 
