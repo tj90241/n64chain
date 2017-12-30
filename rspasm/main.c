@@ -103,14 +103,8 @@ int main(int argc, const char *argv[]) {
     // Not a filename.
     if (argv[i][0] == '-') {
 
-      // Reading from stdin?
-      if (argv[i][1] == '\0') {
-        input = stdin;
-        continue;
-      }
-
       // Ensure it's a -X style argument.
-      else if (argv[i][2] == '\0') {
+      if (argv[i][2] == '\0') {
         switch(argv[i][1]) {
 
           // -h: help
@@ -156,6 +150,12 @@ int main(int argc, const char *argv[]) {
             ++i;
             break;
         }
+      }
+
+      else {
+        fprintf(stderr, "Unable to parse: %s\n", argv[i]);
+        status = EXIT_FAILURE;
+        break;
       }
     }
 
