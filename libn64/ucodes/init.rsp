@@ -1,5 +1,10 @@
 #include "defs.h"
 
+.data
+.half 0x0000 ; 0
+.half 0x4000 ; 1/4
+.half 0x0008 ; 8
+
 .text
 
 ; Initialize the RSP (configure CP0, load constants, etc.)
@@ -11,6 +16,9 @@ init_rsp:
 init_rdp:
   addiu $at, $0, (SET_XBUS_DMEM_DMA | CLEAR_FREEZE | CLEAR_FLUSH)
   mtc0 $at, CMD_STATUS
+
+; Load the magical constant vector register.
+  lqv $v31, 0x0($0)
 
 ; Raise an interrupt - we are done.
   break
