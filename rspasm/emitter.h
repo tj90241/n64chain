@@ -55,6 +55,14 @@ int rspasm_emit_instruction_rrt(struct rspasm *rspasm,
   const YYLTYPE *loc, enum rsp_opcode opcode,
   unsigned rs, unsigned rt, int offset);
 
+int rspasm_emit_instruction_rt(struct rspasm *rspasm,
+  const YYLTYPE *loc, enum rsp_opcode opcode,
+  unsigned rs, int offset);
+
+int rspasm_emit_instruction_rv_mxc2(struct rspasm *rspasm,
+  const YYLTYPE *loc, enum rsp_opcode opcode,
+  unsigned rt, unsigned vd, unsigned element);
+
 int rspasm_emit_instruction_vo_lwc2(struct rspasm *rspasm,
   const YYLTYPE *loc, enum rsp_opcode opcode,
   unsigned vt, unsigned element, long offset, unsigned base);

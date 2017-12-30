@@ -79,9 +79,9 @@ int yyerror(YYLTYPE *yylloc, yyscan_t scanner, const char *error) {
 %token OPCODE_RRR
 %token OPCODE_RRS
 %token OPCODE_RRT
-%token OPCODE_RT //
+%token OPCODE_RT
 %token OPCODE_RZ2 //
-%token OPCODE_RZ2E //
+%token OPCODE_RZ2E
 %token OPCODE_T //
 %token OPCODE_VO_LWC2
 %token OPCODE_VO_SWC2
@@ -120,8 +120,8 @@ int yyerror(YYLTYPE *yylloc, yyscan_t scanner, const char *error) {
 %type <constant> constexpr expr CONSTANT
 %type <identifier> IDENTIFIER
 %type <opcode> OPCODE OPCODE_RI OPCODE_RO OPCODE_RRC0 OPCODE_RRI OPCODE_RRR
-               OPCODE_RRS OPCODE_RRT OPCODE_VO_LWC2 OPCODE_VO_SWC2
-               OPCODE_VV OPCODE_VVV VOPCODE
+               OPCODE_RRS OPCODE_RRT OPCODE_RT OPCODE_RZ2E OPCODE_VO_LWC2
+               OPCODE_VO_SWC2 OPCODE_VV OPCODE_VVV VOPCODE
 
 %type <reg> SCALAR_REG VECTOR_REG scalar_register vector_register
 
@@ -260,6 +260,19 @@ scalar_instruction:
 
     | OPCODE_RRT scalar_register COMMA scalar_register COMMA expr {
       if (rspasm_emit_instruction_rrt(
+        rspasmget_extra(scanner), &yyloc, $1, $2, $4, $6))
+        return EXIT_FAILURE;
+    }
+
+    | OPCODE_RT scalar_register COMMA expr {
+      if (rspasm_emit_instruction_rt(
+        rspasmget_extra(scanner), &yyloc, $1, $2, $4))
+        return EXIT_FAILURE;
+    }
+
+    | OPCODE_RZ2E scalar_register COMMA
+                  vector_register LEFT_BRACKET expr RIGHT_BRACKET {
+      if (rspasm_emit_instruction_rv_mxc2(
         rspasmget_extra(scanner), &yyloc, $1, $2, $4, $6))
         return EXIT_FAILURE;
     }

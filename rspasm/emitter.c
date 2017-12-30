@@ -15,6 +15,7 @@
 #endif
 
 #include "emitter.h"
+#include "opcodes.h"
 #include "rspasm.h"
 #include <limits.h>
 #include <stdint.h>
@@ -300,6 +301,66 @@ int rspasm_emit_instruction_rrt(struct rspasm *rspasm,
   soffset = (unsigned short) ((short) offset >> 2);
 
   iw = htonl((opcode << 26) | (rs << 21) | (rt << 16) | (soffset & 0xFFFF));
+  memcpy(rspasm->data + rspasm->ihead, &iw, sizeof(iw));
+  rspasm->ihead += sizeof(iw);
+
+  return 0;
+}
+
+int rspasm_emit_instruction_rt(struct rspasm *rspasm,
+  const YYLTYPE *loc, enum rsp_opcode opcode,
+  unsigned rs, int offset) {
+  uint32_t soffset, iw;
+
+  offset -= 0x1000;
+
+  if (offset > 4096 || offset < -4096) {
+    fprintf(stderr, "line %d: Offset greater than IMEM size.\n",
+      loc->first_line);
+
+    return -1;
+  }
+
+  offset -= (rspasm->ihead & 0xFFF) + 0x4;
+  soffset = (unsigned short) ((short) offset >> 2);
+
+  // if (REGIMM)
+  if (opcode == BGEZ || opcode == BGEZAL || opcode == BLTZ || opcode == BLTZAL) {
+    iw = (1 << 26) | (opcode << 16);
+  }
+
+  // else ...
+  else {
+    iw = opcode << 26;
+  }
+
+  iw = htonl(iw | (rs << 21) | (soffset & 0xFFFF));
+  memcpy(rspasm->data + rspasm->ihead, &iw, sizeof(iw));
+  rspasm->ihead += sizeof(iw);
+
+  return 0;
+}
+
+int rspasm_emit_instruction_rv_mxc2(struct rspasm *rspasm,
+  const YYLTYPE *loc, enum rsp_opcode opcode,
+  unsigned rt, unsigned vd, unsigned element) {
+  uint32_t iw;
+
+  if (opcode == MFC2 && rt == 0) {
+    fprintf(stderr, "line %d: Instruction writes to $v0.\n",
+      loc->first_line);
+  }
+
+  if (element > 0xF) {
+    fprintf(stderr, "line %d: "
+      "Element is out of range.\n", loc->first_line);
+
+    return -1;
+  }
+
+  iw = htonl((0x12 << 26) | (opcode << 21) |
+      (rt << 16) | (vd << 11) | (element << 7));
+
   memcpy(rspasm->data + rspasm->ihead, &iw, sizeof(iw));
   rspasm->ihead += sizeof(iw);
 
