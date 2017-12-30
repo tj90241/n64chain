@@ -31,7 +31,7 @@ RSPASM = $(call FIXPATH,$(CURDIR)/../tools/bin/rspasm)
 
 # priv_include is not "advertised", but this is just a demo...
 CFLAGS = -Wall -Wextra -pedantic -std=c99 -Wno-main \
-	-I../libn64/include -I../libn64 -I../libn64/priv_include -I.
+	-I../libn64/include -I../libgfx/include -I../libn64/priv_include -I.
 
 OPTFLAGS = -Os -march=vr4300 -mtune=vr4300 -mabi=eabi -mgp32 -mlong32 \
 	-flto -ffat-lto-objects -ffunction-sections -fdata-sections \
@@ -68,11 +68,11 @@ $(ROM_NAME).z64: $(ROM_NAME).elf
 	@$(OBJCOPY) -O binary $< $@
 	@$(CHECKSUM) $(call FIXPATH,../libn64/header.bin) $@
 
-$(ROM_NAME).elf: libn64 $(OBJFILES) filesystem.obj
+$(ROM_NAME).elf: libn64 libgfx $(OBJFILES) filesystem.obj
 	@echo $(call FIXPATH,"Building: $(ROM_NAME)/$@")
 	@$(CC) $(CFLAGS) $(OPTFLAGS) -Wl,-Map=$(ROM_NAME).map -nostdlib \
 		-T$(call FIXPATH,../libn64/rom.ld) -o $@ $(OBJFILES) filesystem.obj \
-		-L$(call FIXPATH,../libn64) -ln64
+		-L$(call FIXPATH,../libn64) -ln64 -L$(call FIXPATH,../libgfx) -lgfx
 
 #
 # Filesystem build target.
@@ -103,6 +103,10 @@ filesystem/%.tsk: ucodes/%.rsp
 .PHONY: libn64
 libn64:
 	@$(MAKE) -sC $(call FIXPATH,../libn64)
+
+.PHONY: libgfx
+libgfx:
+	@$(MAKE) -sC $(call FIXPATH,../libgfx)
 
 #
 # Clean project target.

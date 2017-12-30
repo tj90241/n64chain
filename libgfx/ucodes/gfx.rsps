@@ -1,0 +1,22 @@
+#
+# libgfx/ucodes/gfx.rsps: RSP graphics ucode container.
+#
+# n64chain: A (free) open-source N64 development toolchain.
+# Copyright 2014-16 Tyler J. Stachecki <stachecki.tyler@gmail.com>
+#
+# This file is subject to the terms and conditions defined in
+# 'LICENSE', which is part of this source code package.
+#
+
+#include <libn64.h>
+
+.section .text.libn64.ucode, "ax", @progbits
+
+.global libn64_ucode_gfx
+.type libn64_ucode_gfx, @object
+.align 4
+libn64_ucode_gfx:
+.incbin "ucodes/gfx.bin"
+
+.size libn64_ucode_gfx,.-libn64_ucode_gfx
+

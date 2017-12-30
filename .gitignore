@@ -23,6 +23,7 @@
 *.map
 *.o
 *.obj
+*.rsppch
 *.tsk
 *.z64
 

@@ -1,0 +1,227 @@
+#include "defs.h"
+
+.set COMMAND_WORD,          $1
+.set COMMAND_POINTER,       $27
+.set OUTPUT_POINTER,        $28
+.set VERTEX_CACHE_OFFSET,   0xC00
+
+.text
+  addiu $30, $0, VERTEX_CACHE_OFFSET
+  addiu COMMAND_POINTER, $0, 0x10
+  addiu OUTPUT_POINTER, $0, 0x100
+
+loop:
+  ; Check if command is RSP processing command.
+  lw COMMAND_WORD, 0x0(COMMAND_POINTER)
+  bltz COMMAND_WORD, draw_triangle
+  addiu COMMAND_POINTER, COMMAND_POINTER, 0x4
+
+  ; Check if command is end of display list.
+  beq COMMAND_WORD, $0, finish
+  nop
+
+  ; Copy RDP command through to output stream.
+  sw COMMAND_WORD, 0x0(OUTPUT_POINTER)
+  lw COMMAND_WORD, 0x0(COMMAND_POINTER)
+  addiu COMMAND_POINTER, COMMAND_POINTER, 0x4
+  sw COMMAND_WORD, 0x4(OUTPUT_POINTER)
+  beq $0, $0, loop
+  addiu OUTPUT_POINTER, OUTPUT_POINTER, 0x8
+
+finish:
+  lui $at, 0x0400
+  ori $at, $at, 0x100
+  mtc0 $at, CMD_START
+
+  lui $at, 0x0400
+  addu $at, $at, OUTPUT_POINTER
+  mtc0 $at, CMD_END
+
+  break
+  nop
+
+; -------------------------------------------------------------------
+;  draw_triangle: Given three vertices, pack an RDP Edge Coefficients
+;                 instruction (for a triangle primitive) accordingly.
+;
+; Steps:
+;  * Sort vertices by y-coordinate (ascending).
+;  * Compute edge walker slopes and cross-product.
+;  * Utilize cross-product to determine if lft or not.
+;
+; TODO:
+;  * Handle "huge" (16-bit, heh) reciprocal numbers better?
+;  * Accumulate fractional portion of the reciprocal number?
+; -------------------------------------------------------------------
+draw_triangle:
+
+  ; Load offsets of vertices in cache into $2, $3, $4.
+  ; Pre-load the y-coordinates into $5, $6, $7.
+  .set vert1, $2
+  .set vert2, $3
+  .set vert3, $4
+  .set vert1y, $5
+  .set vert2y, $6
+  .set vert3y, $7
+  .set temp, $8
+
+  andi vert3, COMMAND_WORD, 0xFF0
+  srl vert1, COMMAND_WORD, 16
+  andi vert1, vert1, 0xFF0
+  srl vert2, COMMAND_WORD, 8
+  andi vert2, vert2, 0xFF0
+
+  addiu vert3, vert3, VERTEX_CACHE_OFFSET
+  addiu vert2, vert2, VERTEX_CACHE_OFFSET
+  addiu vert1, vert1, VERTEX_CACHE_OFFSET
+
+  ; Sort vertices based on their y-coordinates (ascending).
+  ; Effectively, this is just a space-optimized bubble sort.
+vert_reload_123:
+  lh vert1y, 2(vert1)
+
+vert_reload_23:
+  lh vert2y, 2(vert2)
+  lh vert3y, 2(vert3)
+
+  slt temp, vert2y, vert1y
+  beq temp, $0, vert_comp_23
+  slt temp, vert3y, vert2y
+  xor vert1, vert1, vert2
+  xor vert2, vert2, vert1
+  xor vert1, vert1, vert2
+
+  ; Spend extra two instructions to prevent a worst-case scenario.
+  ; it is possible we have to backwards branch /twice/ if not...
+  slt temp, vert3y, vert1y
+  bne temp, $0, vert_reload_23
+  addiu temp, $0, 0x1
+
+vert_comp_23:
+  beq temp, $0, vertsorted
+  addu temp, vert3, $0
+  addu vert3, vert2, $0
+  beq $0, $0, vert_reload_123
+  addu vert2, temp, $0
+
+  .unset vert1y
+  .unset vert2y
+  .unset vert3y
+  .unset temp
+
+  ; Vertices are y-sorted, vert1 < vert2 < vert3.
+vertsorted:
+  .set deltas, $v0
+  .set verthighmidhigh, $v1
+  .set vertlowlowmid, $v2
+  .set invipart, $v3
+  .set invfpart, $v4
+  .set vrcptemp, $v5
+
+  ; Compute deltas for edge slopes and the cross product.
+  ; Try to fill otherwise dead delay slots with VRCP work.
+  ;
+  ; BTW, if /dy is 0, the RCP calculated is the most +ive
+  ; signed number possible. And lim x->0 1/x = + infinity.
+  ; So we do not need to check/handle division by zero...
+  llv verthighmidhigh, 0x0(vert3)
+  llv vertlowlowmid, 0x0(vert1)
+  vsub vrcptemp, verthighmidhigh, vertlowlowmid
+  llv verthighmidhigh[0x4], 0x0(vert2)
+  llv vertlowlowmid[0x4], 0x0(vert1)
+  vrcp invfpart[1], vrcptemp[1] ; 1 / hdy
+  vrcph invipart[1], $v31[0x8]
+  vsub vrcptemp, verthighmidhigh, vertlowlowmid
+  llv verthighmidhigh[0x8], 0x0(vert3)
+  llv vertlowlowmid[0x8], 0x0(vert2)
+  vrcp invfpart[3], vrcptemp[3] ; 1 / mdy
+  vrcph invipart[3], $v31[0x8]
+  vsub deltas, verthighmidhigh, vertlowlowmid
+  vrcp invfpart[5], deltas[5] ; 1 / ldy
+  vrcph invipart[5], $v31[0x8]
+
+  .unset verthighmidhigh
+  .unset vertlowlowmid
+  .unset vrcptemp
+
+  ; Cross product to determine LFT/RFT (only need sign...)
+  ;   delta[0] (dxh) * delta[3] (dym)
+  ; - delta[1] (dyh) * delta[2] (dxm)
+  .set dxhdym, $v5
+  .set dyhdxm, $v6
+  vmudh dxhdym, deltas, deltas[0x7] ; 3h
+  vmudh dyhdxm, deltas, deltas[0x6] ; 2h
+  vsub dxhdym, dxhdym, dyhdxm[0x3] ; 1q
+  mfc2 $1, dxhdym[0x0]
+
+  ; Reciprocals are calculated, and, furthermore:
+  ; delta[0,1] = xh-xl, yh-yl (hdy)
+  ; delta[2,3] = xm-xl, ym-yl (mdy)
+  ; delta[4,5] = xh-xm, yh-ym (ldy)
+
+  ; Bring screen coordinates (subpixel) down to fractional form.
+  .set deltasi, $v1
+  .set deltasf, $v2
+  vmudm deltasi, deltas, $v31[0x9]
+  vmadn deltasf, $v31, $v31[0x8]
+
+  ; OK, we have the reciprocal NUMBER (x where i.e,. 1 / x). To get
+  ; that to screen coordinates, instead of multiplying by 1/4, we
+  ; multiply by 4. Oh, and since VRCP shifts the radix right by one,
+  ; we have to account for that... so 8. Confusing? Yeah...
+  ;
+  ; ... and what the heck happens to really big reciprocal numbers?
+  vmudn invfpart, invfpart, $v31[0xA]
+  vmadh invipart, invipart, $v31[0xA]
+  vmadn invfpart, $v31, $v31[0x8]
+
+  ; Finish the inverse slope calculations...
+  .set edgeslopei, $v6
+  .set edgeslopef, $v7
+  vmudl edgeslopef, deltasf, invipart[0x3] ; 1q
+  vmadm edgeslopei, deltasi, invipart[0x3] ; 1q
+  vmadn edgeslopef, $v31, $v31[0x8]
+
+  ; Pack the RDP Edge Coefficients instruction.
+  lui $5, 0x0800
+  slt $6, $1, $0
+  sll $6, $6, 23
+  or $5, $5, $6
+  lh $6, 2(vert3)
+  or $5, $5, $6
+  sw $5, 0x0(OUTPUT_POINTER)
+
+  lh $5, 2(vert2)
+  lh $6, 2(vert1)
+  sll $5, $5, 0x10
+  or $5, $5, $6
+  sw $5, 0x4(OUTPUT_POINTER)
+
+  lh $5, 0x0(vert2)
+  sll $5, $5, 0xE
+  sw $5, 0x8(OUTPUT_POINTER)
+
+  lh $5, 0x0(vert1)
+  sll $5, $5, 0xE
+  sw $5, 0x10(OUTPUT_POINTER)
+  sw $5, 0x18(OUTPUT_POINTER)
+
+  ssv edgeslopei[0x8], 0xC(OUTPUT_POINTER)
+  ssv edgeslopef[0x8], 0xE(OUTPUT_POINTER)
+  ssv edgeslopei[0x4], 0x1C(OUTPUT_POINTER)
+  ssv edgeslopef[0x4], 0x1E(OUTPUT_POINTER)
+  ssv edgeslopei[0x0], 0x14(OUTPUT_POINTER)
+  ssv edgeslopef[0x0], 0x16(OUTPUT_POINTER)
+  beq $0, $0, loop
+  addiu OUTPUT_POINTER, OUTPUT_POINTER, 0x20
+
+  ; TODO: Unset everything else...
+  ; Will likely need these still?
+  .unset vert1
+  .unset vert2
+  .unset vert3
+
+.unset COMMAND_WORD
+.unset COMMAND_POINTER
+.unset VERTEX_CACHE_OFFSET
+
