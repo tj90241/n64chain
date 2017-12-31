@@ -140,6 +140,10 @@ vertsorted:
   vrcp invfpart[5], deltas[5] ; 1 / ldy
   vrcph invipart[5], $v31[0x8]
 
+  ; Reciprocals are calculated, and, furthermore:
+  ; delta[0,1] = xh-xl, yh-yl (hdy)
+  ; delta[2,3] = xm-xl, ym-yl (mdy)
+  ; delta[4,5] = xh-xm, yh-ym (ldy)
   .unset verthighmidhigh
   .unset vertlowlowmid
   .unset vrcptemp
@@ -147,71 +151,73 @@ vertsorted:
   ; Cross product to determine LFT/RFT (only need sign...)
   ;   delta[0] (dxh) * delta[3] (dym)
   ; - delta[1] (dyh) * delta[2] (dxm)
+  ;
+  ; Use delay slots to bring screen coords to fractional form.
+  ; Use scalar unit to start building the resulting RDP command.
+  .set deltasi, $v1
+  .set deltasf, $v2
   .set dxhdym, $v5
   .set dyhdxm, $v6
   vmudh dxhdym, deltas, deltas[0x7] ; 3h
   vmudh dyhdxm, deltas, deltas[0x6] ; 2h
-  vsub dxhdym, dxhdym, dyhdxm[0x3] ; 1q
-  mfc2 $1, dxhdym[0x0]
-
-  ; Reciprocals are calculated, and, furthermore:
-  ; delta[0,1] = xh-xl, yh-yl (hdy)
-  ; delta[2,3] = xm-xl, ym-yl (mdy)
-  ; delta[4,5] = xh-xm, yh-ym (ldy)
-
-  ; Bring screen coordinates (subpixel) down to fractional form.
-  .set deltasi, $v1
-  .set deltasf, $v2
   vmudm deltasi, deltas, $v31[0x9]
   vmadn deltasf, $v31, $v31[0x8]
+  vsub dxhdym, dxhdym, dyhdxm[0x3] ; 1q
 
-  ; OK, we have the reciprocal NUMBER (x where i.e,. 1 / x). To get
-  ; that to screen coordinates, instead of multiplying by 1/4, we
-  ; multiply by 4. Oh, and since VRCP shifts the radix right by one,
-  ; we have to account for that... so 8. Confusing? Yeah...
+  ; OK, we have the reciprocal NUMBER (x where i.e,. 1 / x).
+  ; Multiply by the reciprocal before scaling it back up, as we
+  ; can tolerate some precision loss for the slopes.
   ;
-  ; ... and what the heck happens to really big reciprocal numbers?
-  vmudn invfpart, invfpart, $v31[0xA]
-  vmadh invipart, invipart, $v31[0xA]
-  vmadn invfpart, $v31, $v31[0x8]
-
-  ; Finish the inverse slope calculations...
-  .set edgeslopei, $v6
-  .set edgeslopef, $v7
+  ; Use scalar unit to start building the resulting RDP command.
+  .set edgeslopei, $v7
+  .set edgeslopef, $v8
   vmudl edgeslopef, deltasf, invipart[0x3] ; 1q
   vmadm edgeslopei, deltasi, invipart[0x3] ; 1q
   vmadn edgeslopef, $v31, $v31[0x8]
 
-  ; Pack the RDP Edge Coefficients instruction.
-  lui $5, 0x0800
-  slt $6, $1, $0
-  sll $6, $6, 23
-  or $5, $5, $6
-  lh $6, 2(vert3)
-  or $5, $5, $6
-  sw $5, 0x0(OUTPUT_POINTER)
-
-  lh $5, 2(vert2)
-  lh $6, 2(vert1)
-  sll $5, $5, 0x10
-  or $5, $5, $6
-  sw $5, 0x4(OUTPUT_POINTER)
-
-  lh $5, 0x0(vert2)
-  sll $5, $5, 0xE
-  sw $5, 0x8(OUTPUT_POINTER)
-
-  lh $5, 0x0(vert1)
-  sll $5, $5, 0xE
-  sw $5, 0x10(OUTPUT_POINTER)
-  sw $5, 0x18(OUTPUT_POINTER)
-
-  ssv edgeslopei[0x8], 0xC(OUTPUT_POINTER)
-  ssv edgeslopef[0x8], 0xE(OUTPUT_POINTER)
-  ssv edgeslopei[0x4], 0x1C(OUTPUT_POINTER)
-  ssv edgeslopef[0x4], 0x1E(OUTPUT_POINTER)
+  ; To get the reciprocal to screen coordinates, instead of dividing
+  ; by 4, we multiply by 4. Oh, and since VRCP shifts the radix right
+  ; by one, we have to account for that... so 8. Confusing? Yeah...
+  ;
+  ; Use scalar unit to start building the resulting RDP command.
+  .set scalartemp1, $5
+  .set scalartemp2, $6
+  mfc2 $1, dxhdym[0x0]
+  vmudn edgeslopef, edgeslopef, $v31[0xA]
+  lui scalartemp1, 0x0800
+  vmadh edgeslopei, edgeslopei, $v31[0xA]
+  slt scalartemp2, $1, $0
+  vmadn edgeslopef, $v31, $v31[0x8]
+  sll scalartemp2, scalartemp2, 23
+  or scalartemp1, scalartemp1, scalartemp2
   ssv edgeslopei[0x0], 0x14(OUTPUT_POINTER)
+  lh scalartemp2, 2(vert3)
   ssv edgeslopef[0x0], 0x16(OUTPUT_POINTER)
+  or scalartemp1, scalartemp1, scalartemp2
+  vmov edgeslopei[0x5], edgeslopef[0x4]
+  sw scalartemp1, 0x0(OUTPUT_POINTER)
+  vmov edgeslopei[0x3], edgeslopef[0x2]
+
+  ; Once we figure out the clipping, these two bundles of scalar
+  ; instructions might be able to get interleaved with the vector
+  ; multiplies for screen coordinates and edgewalker slopes.
+  lh scalartemp1, 2(vert2)
+  lh scalartemp2, 2(vert1)
+  sll scalartemp1, scalartemp1, 0x10
+  or scalartemp1, scalartemp1, scalartemp2
+  sw scalartemp1, 0x4(OUTPUT_POINTER)
+
+  lh scalartemp1, 0x0(vert2)
+  sll scalartemp1, scalartemp1, 0xE
+  sw scalartemp1, 0x8(OUTPUT_POINTER)
+
+  lh scalartemp1, 0x0(vert1)
+  sll scalartemp1, scalartemp1, 0xE
+  sw scalartemp1, 0x10(OUTPUT_POINTER)
+  sw scalartemp1, 0x18(OUTPUT_POINTER)
+  slv edgeslopei[0x8], 0xC(OUTPUT_POINTER)
+  slv edgeslopei[0x4], 0x1C(OUTPUT_POINTER)
+
   beq $0, $0, loop
   addiu OUTPUT_POINTER, OUTPUT_POINTER, 0x20
 
