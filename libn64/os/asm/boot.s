@@ -99,13 +99,13 @@ libn64_init_inval_icache:
 
 # Wait for the PI to finish DMA'ing the interrupt handler.
 libn64_init_pi_wait:
-  xori $ra, $ra, 0x8
-  bnezl $ra, libn64_init_pi_wait
   lw $ra, 0x10($at)
+  andi $ra, $ra, 0x1
+  bnez $ra, libn64_init_pi_wait
 
 # Clear BSS; leave it in the cache in case libn64_main needs it.
-  la $at, __bss_start
   addiu $a1, $v0, -0xC00
+  la $at, __bss_start
   beql $at, $a1, libn64_init_bss_clear_skip
 
 libn64_init_bss_clear:
