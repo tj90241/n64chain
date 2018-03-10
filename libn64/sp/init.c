@@ -11,6 +11,9 @@
 #include <libn64.h>
 #include <rcp/sp.h>
 #include <sp/init.h>
+#include <sp/sp_thread.h>
+#include <stddef.h>
+#include <syscall.h>
 
 libn64func
 void libn64_sp_init(void) {
@@ -35,5 +38,24 @@ void libn64_sp_init(void) {
   libn64_rsp_set_pc(0x04001000);
   libn64_rsp_set_status(RSP_STATUS_CLEAR_HALT | RSP_STATUS_CLEAR_BROKE);
   while ((libn64_rsp_get_status() & 0x3) != 0x3);
+
+  // Start thread
+  libn64_thread sp_thread;
+
+  sp_thread = libn64_thread_create(libn64_sp_thread, NULL,
+      LIBN64_THREAD_MAX_PRIORITY);
+
+  // Store the thread address in the global block.
+  __asm__ __volatile__(
+    ".set noat\n\t"
+    ".set gp=64\n\t"
+    "lui $at, 0x8000\n\t"
+    "sw %0, 0x458($at)\n\t"
+    ".set gp=default\n\t"
+    ".set at\n\t"
+
+    :: "r" (sp_thread)
+    : "memory"
+  );
 }
 

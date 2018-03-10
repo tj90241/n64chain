@@ -8,12 +8,12 @@
 // 'LICENSE', which is part of this source code package.
 //
 
+#include <io/init.h>
 #include <io/pi_thread.h>
 #include <libn64.h>
 #include <stddef.h>
 #include <syscall.h>
 
-libn64func
 void libn64_io_init(void) {
   libn64_thread pi_thread;
 

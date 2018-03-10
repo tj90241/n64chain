@@ -49,6 +49,7 @@ CFILES = $(call FIXPATH,\
 	os/time.c \
 	rcp/vi.c \
 	sp/init.c \
+	sp/sp_thread.c \
 )
 
 UCODES = $(call FIXPATH,\

@@ -144,7 +144,7 @@ void main(void *unused __attribute__((unused))) {
   libn64_thread_reg_intr(vi_thr, LIBN64_INTERRUPT_VI);
 
   // Spawn a few medium-priority box animation threads.
-  for (i = 1; i < 12; i++) {
+  for (i = 1; i < 11; i++) {
     args.vi_state = &vi_state;
     args.init_x_dir = i & 1;
     args.init_y_dir = (i >> 1) & 1;
