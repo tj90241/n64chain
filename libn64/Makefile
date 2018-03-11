@@ -40,6 +40,7 @@ ASMFILES = $(call FIXPATH,\
 
 CFILES = $(call FIXPATH,\
 	io/init.c \
+	io/filesystem.c \
 	io/pi_thread.c \
 	io/si_thread.c \
 	os/fbtext.c \
