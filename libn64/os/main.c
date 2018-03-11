@@ -51,7 +51,7 @@ void libn64_main(uint32_t kernel_sp, uint32_t bss_end) {
   // The user can grow this themselves if they want more memory.
   // This is kind of "dangerous" in the sense that we allocate
   // pages on top of our active stack, but it's fine for now...
-  libn64_mm_init(kernel_sp - 4096 * 8, kernel_sp);
+  libn64_mm_init(kernel_sp - 4096 * 16, kernel_sp);
 
   // Kickoff the IO engine and initialize the SP.
   libn64_io_init();
