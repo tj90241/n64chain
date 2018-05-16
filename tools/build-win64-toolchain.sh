@@ -12,7 +12,7 @@ set -eu
 #
 
 BINUTILS="ftp://ftp.gnu.org/gnu/binutils/binutils-2.30.tar.bz2"
-GCC="ftp://ftp.gnu.org/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz"
+GCC="ftp://ftp.gnu.org/gnu/gcc/gcc-8.1.0/gcc-8.1.0.tar.gz"
 GMP="ftp://ftp.gnu.org/gnu/gmp/gmp-6.1.2.tar.bz2"
 MAKE="ftp://ftp.gnu.org/gnu/make/make-4.2.1.tar.bz2"
 MPC="ftp://ftp.gnu.org/gnu/mpc/mpc-1.1.0.tar.gz"
@@ -114,11 +114,6 @@ if [ ! -f stamps/mpc-extract ]; then
   mkdir -p gcc-source/mpc
   tar -xf tarballs/$(basename ${MPC}) -C gcc-source/mpc --strip 1
   touch stamps/mpc-extract
-fi
-
-if [ ! -f stamps/gcc-patch ]; then
-  patch -Np0 -i gcc-win64-enable-plugins.patch
-  touch stamps/gcc-patch
 fi
 
 if [ ! -f stamps/gcc-configure ]; then
