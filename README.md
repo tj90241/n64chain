@@ -1,6 +1,6 @@
 # n64chain
 
-This is a Nintendo 64 development toolchain based on GCC that do not depend on any proprietary Nintendo library.
+This is a Nintendo 64 development toolchain based on GCC that does not depend on any proprietary Nintendo library.
 Only thing that you need to provide is a 2kb bootcode compatible with your CIC to bootstrap the code.
 This is not included in n64chain.
 
@@ -12,8 +12,8 @@ lightweight development environment and thus requires some low-level baby sittin
 
 To build the toolchain, first put your boot code named `header.bin` on the `libn64` folder. Run `build-linux64-toolchain.sh`
 in the `tools` folder on a bash-compatible shell to start building the cross-compiler.
-Prerequisites are MPFR and MPC with development headers, which can be installed via `apt install libmpfr-dev libmpc-dev`
-on a debian based system. There is also a Windows copatible version `build-win64-toolchain.sh` that still requires a
+Prerequisites are GMP, MPFR and MPC with development headers, build-essential, yacc, and bison, which can be installed via `apt install build-essential libmpfr-dev libmpc-dev libgmp-dev byacc bison`
+on Ubuntu. There is also a Windows compatible version `build-win64-toolchain.sh` that still requires a
 UNIX-like environment to run.
 
 After the custom GCC build is completed, you should be able to build the helloworld example by running `make` inside
