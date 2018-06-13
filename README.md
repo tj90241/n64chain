@@ -12,7 +12,7 @@ lightweight development environment and thus requires some low-level baby sittin
 
 To build the toolchain, first put your boot code named `header.bin` on the `libn64` folder. Run `build-linux64-toolchain.sh`
 in the `tools` folder on a bash-compatible shell to start building the cross-compiler.
-Prerequisites are GMP, MPFR and MPC with development headers, build-essential, yacc, and bison, which can be installed via `apt install build-essential libmpfr-dev libmpc-dev libgmp-dev byacc bison`
+Prerequisites are GMP, MPFR and MPC with development headers, build-essential, yacc, and bison, which can be installed via `apt install build-essential libmpfr-dev libmpc-dev libgmp-dev yacc bison`
 on Ubuntu. There is also a Windows compatible version `build-win64-toolchain.sh` that still requires a
 UNIX-like environment to run.
 
