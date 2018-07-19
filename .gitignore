@@ -30,3 +30,6 @@
 /*/filesystem.h
 *.swp
 
+# macOS Garbage
+.DS_Store
+._*

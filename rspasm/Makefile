@@ -39,7 +39,7 @@ all: rspasm
 
 rspasm: $(OBJFILES)
 	@echo $(call FIXPATH,"Linking: rspasm/$@")
-	@$(CC) -static $(CFLAGS) $(OPTFLAGS) $^ $(RSPASM_LIBS) -o $@
+	@$(CC) $(CFLAGS) $(OPTFLAGS) $^ $(RSPASM_LIBS) -o $@
 
 parser.c: parser.y
 	@echo $(call FIXPATH,"Generating: rspasm/$@")

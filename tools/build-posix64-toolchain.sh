@@ -177,13 +177,13 @@ if [ ! -f stamps/make-install ]; then
 fi
 
 if [ ! -f stamps/checksum-build ]; then
-  cc -Wall -Wextra -pedantic -std=c99 -static -O2 checksum.c -o bin/checksum
+  cc -Wall -Wextra -pedantic -std=c99 -O2 checksum.c -o bin/checksum
 
   touch stamps/checksum-build
 fi
 
 if [ ! -f stamps/mkfs-build ]; then
-  cc -Wall -Wextra -pedantic -std=c99 -static -O2 mkfs.c -o bin/mkfs
+  cc -Wall -Wextra -pedantic -std=c99 -O2 mkfs.c -o bin/mkfs
 
   touch stamps/mkfs-build
 fi
