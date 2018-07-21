@@ -218,13 +218,13 @@ if [ ! -f stamps/make-install ]; then
 fi
 
 if [ ! -f stamps/checksum-build ]; then
-  x86_64-w64-mingw32-gcc -Wall -Wextra -pedantic -std=c99 -static -O2 checksum.c -o bin/checksum.exe
+  x86_64-w64-mingw32-gcc -Wall -Wextra -pedantic -std=c99 -O2 checksum.c -o bin/checksum.exe
 
   touch stamps/checksum-build
 fi
 
 if [ ! -f stamps/mkfs-build ]; then
-  x86_64-w64-mingw32-gcc -Wall -Wextra -pedantic -std=c99 -static -O2 mkfs.c -o bin/mkfs.exe
+  x86_64-w64-mingw32-gcc -Wall -Wextra -pedantic -std=c99 -O2 mkfs.c -o bin/mkfs.exe
 
   touch stamps/mkfs-build
 fi
