@@ -481,7 +481,7 @@ libn64_syscall_send_message:
 # Check to see if we unblocked a higher priority thread.
   lw $a0, 0x198($a0)
   bne $a0, $zero, libn64_sendt_message_unblock
-  mfc0 $ra, $30
+  nop
   eret
 
 .size libn64_syscall_send_message,.-libn64_syscall_send_message
@@ -494,7 +494,7 @@ libn64_syscall_send_message:
 .align 5
 libn64_syscall_recv_message:
   mtc0 $k1, $14
-  addiu $k0, $k0, 0xC
+  addiu $k0, $k0, 0x8
 
 libn64_recv_replay:
   lw $at, 0x4($a0)
@@ -512,13 +512,14 @@ libn64_recv_maybe_block_thread:
   bgezl $a1, libn64_recv_block_thread
   lw $k1, 0x8($a0)
   lui $v0, 0x8000
-  xor $at, $at, $at
   eret
 
 libn64_recv_block_thread:
+  mtc0 $k0, $30
   la $k0, libn64_block_thread
   j libn64_context_save
-  mtc0 $k0, $30
+  nop
+
 
 .size libn64_syscall_recv_message,.-libn64_syscall_recv_message
 
