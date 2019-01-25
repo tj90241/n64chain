@@ -157,7 +157,9 @@ if [ ! -f stamps/make-extract ]; then
 fi
 
 if [ ! -f stamps/make-patch ]; then
-  patch -d make-source -p1 -i ../make-*.patch
+  pushd make-source
+  patch -p1 -i ../make-*.patch
+  popd
   touch stamps/make-patch
 fi
 
