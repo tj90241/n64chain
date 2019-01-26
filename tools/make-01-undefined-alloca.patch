@@ -1,0 +1,12 @@
+diff -Naur make-source/glob/glob.c b/glob/glob.c
+--- make-source/glob/glob.c	2013-10-20 10:14:38.000000000 -0700
++++ b/glob/glob.c	2019-01-24 23:00:39.853377675 -0800
+@@ -208,7 +208,7 @@
+ #endif /* __GNU_LIBRARY__ || __DJGPP__ */
+ 
+ 
+-#if !defined __alloca && !defined __GNU_LIBRARY__
++#if !defined __alloca && defined __GNU_LIBRARY__
+ 
+ # ifdef	__GNUC__
+ #  undef alloca
