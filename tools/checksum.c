@@ -202,10 +202,12 @@ int main(int argc, const char *argv[]) {
   }
 
   // Ensure the file is at least min_sz in length, write the CRC.
-  if (safe_fwrite(buffer, min_sz, f)) {
-    fprintf(stderr, "Unable to write contents to: %s.\n", argv[2]);
-    free(buffer);
-    fclose(f);
+  size_t wr_len = min_sz > CHECKSUM_LENGTH ? CHECKSUM_LENGTH : min_sz;
+
+  if (safe_fwrite(buffer, wr_len, f)) {
+     fprintf(stderr, "Unable to write contents to: %s.\n", argv[2]);
+     free(buffer);
+     fclose(f);
 
     return EXIT_FAILURE;
   }
