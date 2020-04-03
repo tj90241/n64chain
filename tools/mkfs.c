@@ -328,7 +328,7 @@ int write_image(FILE *fs, FILE *fslist, const struct fsinode *root) {
     FILE *f;
 
     fprintf(fslist, "#define CART_OFFS_%s 0x%.8X\n", inode->name,
-        (unsigned int) (file_offset + 0x1000));
+        (unsigned int) file_offset);
 
     fprintf(fslist, "#define CART_SIZE_%s 0x%.8X\n", inode->name,
         (unsigned int) inode->size);

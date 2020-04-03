@@ -134,6 +134,7 @@ SECTIONS {
 
   .cart 0x30000C00 + __exception_end : AT(__exception_end) {
     *(.cart.libn64.*)
+    *(filesystem.data)
   }
 
   /* Everything is statically linked, so discard PLTs. */
