@@ -78,7 +78,7 @@ $(ROM_NAME).elf: libn64 libgfx $(OBJFILES) filesystem.obj
 #
 filesystem.obj: filesystem.h
 	@echo $(call FIXPATH,"Building: $(ROM_NAME)/$@")
-	@$(OBJCOPY) -I binary -O elf32-bigmips -B mips filesystem.bin $@
+	@$(OBJCOPY) -I binary -O elf32-bigmips -B mips --prefix-sections filesystem filesystem.bin $@
 
 filesystem.h: $(wildcard filesystem/*) $(UCODETSKS)
 	@echo $(call FIXPATH,"Generate: $(ROM_NAME)/$@")

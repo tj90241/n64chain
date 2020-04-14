@@ -30,7 +30,7 @@ void filesystem_load(const struct libn64_pi_request *pi_req) {
   // the cart by checksum, and the cart gets loaded to 0x8000_0400.
   // Do a bit of fudging to figure out where the data is located.
   __builtin_memcpy(&fs_offs, &fs_ptr, sizeof(fs_offs));
-  fs_offs -= 0x70000400;
+  fs_offs -= 0xA0000000;
 
   __asm__ __volatile__(
     ".set noreorder\n\t"
