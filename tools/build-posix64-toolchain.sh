@@ -19,8 +19,8 @@ which getconf >/dev/null 2>/dev/null && {
 
 numproc=`getnumproc`
 
-BINUTILS="ftp://ftp.gnu.org/gnu/binutils/binutils-2.32.tar.bz2"
-GCC="ftp://ftp.gnu.org/gnu/gcc/gcc-9.1.0/gcc-9.1.0.tar.gz"
+BINUTILS="ftp://ftp.gnu.org/gnu/binutils/binutils-2.34.tar.bz2"
+GCC="ftp://ftp.gnu.org/gnu/gcc/gcc-9.3.0/gcc-9.3.0.tar.gz"
 MAKE="ftp://ftp.gnu.org/gnu/make/make-4.2.1.tar.bz2"
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
