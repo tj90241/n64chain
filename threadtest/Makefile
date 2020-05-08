@@ -33,7 +33,7 @@ CFLAGS = -Wall -Wextra -pedantic -std=c99 -Wno-main \
 	-I../libn64/include -I../libgfx/include -I.
 
 OPTFLAGS = -Os -march=vr4300 -mtune=vr4300 -mabi=eabi -mgp32 -mlong32 \
-	-flto -ffat-lto-objects -ffunction-sections -fdata-sections \
+	-flto -ffat-lto-objects -ffunction-sections -fdata-sections -fno-builtin \
 	-G4 -mno-extern-sdata -mgpopt -mfix4300 -mbranch-likely \
 	-mno-check-zero-division
 
