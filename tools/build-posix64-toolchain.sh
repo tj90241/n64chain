@@ -208,6 +208,9 @@ if [ ! -f stamps/rspasm-build ]; then
 
   make clean && make all -j${numproc}
   cp rspasm ${SCRIPT_DIR}/bin
+  popd
+
+  touch stamps/rspasm-build
 fi
 
 rm -rf "${SCRIPT_DIR}"/../tools/tarballs
