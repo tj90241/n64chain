@@ -11,7 +11,7 @@
 #ifndef RSPASM_OPCODES_H
 #define RSPASM_OPCODES_H
 
-enum rsp_opcode {
+typedef enum rsp_opcode {
   BREAK = 0x0000000D,
   NOP = 0x00000000,
   VNOP = 0x4A000037,

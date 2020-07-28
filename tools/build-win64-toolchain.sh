@@ -235,6 +235,9 @@ if [ ! -f stamps/rspasm-build ]; then
   make clean
   CC=x86_64-w64-mingw32-gcc RSPASM_LIBS="-lws2_32" make
   cp rspasm ${SCRIPT_DIR}/bin/rspasm.exe
+  popd
+
+  touch stamps/rspasm-build
 fi
 
 rm -rf "${SCRIPT_DIR}"/../tools/tarballs
