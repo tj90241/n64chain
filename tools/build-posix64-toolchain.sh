@@ -131,6 +131,14 @@ if [ ! -f stamps/gcc-build ]; then
   touch stamps/gcc-build
 fi
 
+if [ ! -f stamps/libgcc-build ]; then
+  pushd gcc-build
+  make all-target-libgcc CFLAGS_FOR_TARGET='-g -O2 -mabi=32' -j${numproc}
+  popd
+
+  touch stamps/libgcc-build
+fi
+
 if [ ! -f stamps/gcc-install ]; then
   pushd gcc-build
   make install-gcc
@@ -143,6 +151,14 @@ if [ ! -f stamps/gcc-install ]; then
   popd
 
   touch stamps/gcc-install
+fi
+
+if [ ! -f stamps/libgcc-install ]; then
+  pushd gcc-build
+  make install-target-libgcc
+  popd
+
+  touch stamps/libgcc-install
 fi
 
 if [ ! -f stamps/make-download ]; then
