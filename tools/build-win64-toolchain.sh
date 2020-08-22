@@ -18,6 +18,8 @@ MAKE="ftp://ftp.gnu.org/gnu/make/make-4.2.1.tar.bz2"
 MPC="ftp://ftp.gnu.org/gnu/mpc/mpc-1.1.0.tar.gz"
 MPFR="ftp://ftp.gnu.org/gnu/mpfr/mpfr-4.0.2.tar.bz2"
 NEWLIB="ftp://sourceware.org/pub/newlib/newlib-3.3.0.tar.gz"
+TCFLAG="-g -O2 -D_MIPS_SZLONG=32 -D_MIPS_SZINT=32 -mabi=32 -march=vr4300 -mtune=vr4300 -mfix4300"
+TCXXFLAG="-g -O2 -D_MIPS_SZLONG=32 -D_MIPS_SZINT=32 -mabi=32 -march=vr4300 -mtune=vr4300 -mfix4300"
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd ${SCRIPT_DIR} && mkdir -p {stamps,tarballs}
@@ -144,12 +146,12 @@ if [ ! -f stamps/gcc-configure ]; then
     --disable-multilib \
     --disable-nls \
     --disable-rpath \
-    --disable-static \
     --disable-symvers \
     --disable-threads \
     --disable-win32-registry \
     --enable-lto \
     --enable-plugin \
+    --enable-static \
     --without-included-gettext
   popd
 
@@ -166,7 +168,9 @@ fi
 
 if [ ! -f stamps/libgcc-build ]; then
   pushd gcc-build
-  make all-target-libgcc CFLAGS_FOR_TARGET='-g -O2 -D_MIPS_SZLONG=32 -D_MIPS_SZINT=32 -mabi=32 -march=vr4300 -mtune=vr4300 -mfix4300'
+  make all-target-libgcc \
+    CFLAGS_FOR_TARGET="${TCFLAG}" \
+    CXXFLAGS_FOR_TARGET="${TCXXFLAG}" \
   popd
 
   touch stamps/libgcc-build
@@ -206,8 +210,8 @@ fi
 
 if [ ! -f stamps/newlib-install ]; then
   pushd newlib-build
-  CFLAGS_FOR_TARGET="-mabi=32 -march=vr4300 -mtune=vr4300 -mfix4300 -O2 -g" \
-    CXXFLAGS_FOR_TARGET="-mabi=32 -march=vr4300 -mtune=vr4300 -mfix4300 -O2 -g" \
+  CFLAGS_FOR_TARGET="${TCFLAG}" \
+    CXXFLAGS_FOR_TARGET="${TCXXFLAG}" \
     ../newlib-source/configure --target=mips64-elf --prefix=${SCRIPT_DIR} \
     --with-cpu=mips64vr4300 --disable-threads --disable-libssp --disable-werror
   make
