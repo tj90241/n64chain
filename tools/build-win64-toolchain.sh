@@ -17,6 +17,7 @@ GMP="ftp://ftp.gnu.org/gnu/gmp/gmp-6.2.0.tar.bz2"
 MAKE="ftp://ftp.gnu.org/gnu/make/make-4.2.1.tar.bz2"
 MPC="ftp://ftp.gnu.org/gnu/mpc/mpc-1.1.0.tar.gz"
 MPFR="ftp://ftp.gnu.org/gnu/mpfr/mpfr-4.0.2.tar.bz2"
+NEWLIB="ftp://sourceware.org/pub/newlib/newlib-3.3.0.tar.gz"
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd ${SCRIPT_DIR} && mkdir -p {stamps,tarballs}
@@ -123,7 +124,7 @@ if [ ! -f stamps/gcc-configure ]; then
     --host=x86_64-w64-mingw32 \
     --prefix="${SCRIPT_DIR}" \
     --target=mips64-elf --with-arch=vr4300 \
-    --enable-languages=c --without-headers --with-newlib \
+    --enable-languages=c,c++ --without-headers --with-newlib \
     --with-gnu-as=${SCRIPT_DIR}/bin/mips64-elf-as.exe \
     --with-gnu-ld=${SCRIPT_DIR}/bin/mips64-elf-ld.exe \
     --enable-checking=release \
@@ -165,7 +166,7 @@ fi
 
 if [ ! -f stamps/libgcc-build ]; then
   pushd gcc-build
-  make all-target-libgcc CFLAGS_FOR_TARGET='-g -O2 -mabi=32'
+  make all-target-libgcc CFLAGS_FOR_TARGET='-g -O2 -D_MIPS_SZLONG=32 -D_MIPS_SZINT=32 -mabi=32 -march=vr4300 -mtune=vr4300 -mfix4300'
   popd
 
   touch stamps/libgcc-build
@@ -190,6 +191,30 @@ if [ ! -f stamps/libgcc-install ]; then
   popd
 
   touch stamps/libgcc-install
+fi
+
+if [ ! -f stamps/newlib-download ]; then
+  wget "${NEWLIB}" -O "tarballs/$(basename ${NEWLIB})"
+  touch stamps/newlib-download
+fi
+
+if [ ! -f stamps/newlib-extract ]; then
+  mkdir -p newlib-{build,source}
+  tar -xf tarballs/$(basename ${NEWLIB}) -C newlib-source --strip 1
+  touch stamps/newlib-extract
+fi
+
+if [ ! -f stamps/newlib-install ]; then
+  pushd newlib-build
+  CFLAGS_FOR_TARGET="-mabi=32 -march=vr4300 -mtune=vr4300 -mfix4300 -O2 -g" \
+    CXXFLAGS_FOR_TARGET="-mabi=32 -march=vr4300 -mtune=vr4300 -mfix4300 -O2 -g" \
+    ../newlib-source/configure --target=mips64-elf --prefix=${SCRIPT_DIR} \
+    --with-cpu=mips64vr4300 --disable-threads --disable-libssp --disable-werror
+  make
+  make install
+  popd
+
+  touch stamps/newlib-install
 fi
 
 if [ ! -f stamps/make-download ]; then
