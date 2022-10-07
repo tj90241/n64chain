@@ -21,7 +21,7 @@ numproc=`getnumproc`
 
 BINUTILS="ftp://ftp.gnu.org/gnu/binutils/binutils-2.34.tar.bz2"
 GCC="ftp://ftp.gnu.org/gnu/gcc/gcc-10.1.0/gcc-10.1.0.tar.gz"
-MAKE="ftp://ftp.gnu.org/gnu/make/make-4.2.1.tar.bz2"
+MAKE="ftp://ftp.gnu.org/gnu/make/make-4.3.tar.gz"
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd ${SCRIPT_DIR} && mkdir -p {stamps,tarballs}
@@ -154,13 +154,6 @@ if [ ! -f stamps/make-extract ]; then
   mkdir -p make-{build,source}
   tar -xf tarballs/$(basename ${MAKE}) -C make-source --strip 1
   touch stamps/make-extract
-fi
-
-if [ ! -f stamps/make-patch ]; then
-  pushd make-source
-  patch -p1 -i ../make-*.patch
-  popd
-  touch stamps/make-patch
 fi
 
 if [ ! -f stamps/make-configure ]; then
